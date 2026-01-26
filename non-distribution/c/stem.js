@@ -15,7 +15,7 @@ const rl = readline.createInterface({
 });
 
 rl.on('line', function(line) { // every time a new line appears in stdin
-                                // line is one term only, from process? 
+  // line is one term only, from process? 
   // Print the Porter stem from `natural` for each element of the stream.
   console.log(natural.PorterStemmer.stem(line)); // write stemmed word to stdout
 });
