@@ -2,9 +2,9 @@
   "name": "cs1380:m0",
   "version": "1.0.0",
   "author": {
-    "name": "<first last?>",
-    "email": "<email@brown.edu?>",
-    "cslogin": "<cslogin?>"
+    "name": "Julia Zdzilowska",
+    "email": "julia_zdzilowska@brown.edu",
+    "cslogin": "jzdzilow"
   },
   "description": "A set of components for cs1380's search engine.",
   "dependencies": {
@@ -32,16 +32,16 @@
       "hours": 20,
       "loc": 385,
       "dev": {
-        "cpu-no": 999,
-        "mem-gb": 999,
-        "ssd-gb": 999
+        "cpu-no": "Apple M2",
+        "mem-gb": 16,
+        "ssd-gb": 512
       },
       "throughput": {
         "dev": [1.12, 1.12, 3.63],
         "aws": [0.68, 0.68, 1.96],
         "gs": []
       },
-      "dloc": -99
+      "dloc": 5000
     }
   ]
 }
