@@ -11,7 +11,7 @@
 # Tip: Make sure your program doesn't emit a non-zero exit code if there are no words left after removing stopwords.
 # You can combine the grep invocation with `|| true` to achieve this. Be careful though, as this will also hide other errors!
 
-tr -cs 'A-Za-z' '\n' | tr 'A-Z' 'a-z' | iconv -c -t ASCII | grep -vxFf d/stopwords.txt || true
+tr -cs '[:alpha:]' '\n' | tr '[:upper:]' '[:lower:]' | iconv -c -t ASCII | grep -vxFf d/stopwords.txt || true
 # replace non letters with newlines
 # make lowercase
 # convert to ascii, removing non-ascii characters
