@@ -32,9 +32,9 @@ Remember to error gracefully, particularly when reading the global index file.
 */
 
 const fs = require('fs');
-const readline = require('readline');
+const readline = require('readline'); // read input line by line from disk
 // The `compare` function can be used for sorting.
-const compare = (a, b) => {
+const compare = (a, b) => { // sort things by frequency descending
   if (a.freq > b.freq) {
     return -1;
   } else if (a.freq < b.freq) {
@@ -44,19 +44,19 @@ const compare = (a, b) => {
   }
 };
 const rl = readline.createInterface({
-  input: process.stdin,
+  input: process.stdin, // stdin is whatever's piped on the left, before "|"
 });
 
 // 1. Read the incoming local index data from standard input (stdin) line by line.
 let localIndex = '';
 rl.on('line', (line) => {
-  localIndex += line + '\n';
+  localIndex += line + '\n'; // accumulate lines from stdin
 });
 
 rl.on('close', () => {
   // 2. Read the global index name/location, using process.argv
   // and call printMerged as a callback
-  const globalIndexFile = process.argv[2];
+  const globalIndexFile = process.argv[2]; // here argv[0] is 'node', argv[1] is 'merge.js', argv[2] is the global index file path
   fs.readFile(globalIndexFile, 'utf-8', (err, data) => {
     if (err) {
       // If file doesn't exist, treat as empty
@@ -67,6 +67,9 @@ rl.on('close', () => {
   });
 });
 
+/* 
+Parse local, global indices, merge them, and print the result.
+*/
 const printMerged = (err, data) => {
   if (err) {
     console.error('Error reading file:', err);
@@ -74,14 +77,14 @@ const printMerged = (err, data) => {
   }
 
   // Split the data into an array of lines
-  const localIndexLines = localIndex.split('\n');
+  const localIndexLines = localIndex.split('\n'); // turns into array of lines
   const globalIndexLines = data.split('\n');
 
   localIndexLines.pop();
   globalIndexLines.pop();
 
-  const local = {};
-  const global = {};
+  const local = {}; // local will be Map<term, Map<url, freq>> from stdin
+  const global = {}; // global will be Map<term, Map<url, freq>> from file
 
   // 3. For each line in `localIndexLines`, parse them and add them to the `local` object
   // where keys are terms and values store a url->freq map (one entry per url).
@@ -89,7 +92,8 @@ const printMerged = (err, data) => {
     if (!line.trim()) continue;
     const parts = line.split(' | ');
     const term = parts[0].trim();
-    const freq = parseInt(parts[1].trim());
+    const freq = parseInt(parts[1].trim()); // frequency computed in invert.js
+    // which returns pizza | 3 | https://example.com/page1
     const url = parts[2].trim();
     
     if (!local[term]) {
@@ -147,3 +151,11 @@ const printMerged = (err, data) => {
     console.log(`${term} | ${pairStr}`);
   }
 };
+
+// local: pizza | 3 | https://site/a
+//        pasta | 1 | https://site/a
+// i.e., what does this page contain? 
+// global: pizza | https://site/b 2 https://site/c 5
+// merged: pizza | https://site/a 3 https://site/c 5 https://site/b 2
+//         pasta | https://site/a 11
+// i.e., where does this term appear across all pages, with frequencies
