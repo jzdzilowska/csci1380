@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for end-to-end pipeline
 # Tests that the full indexing pipeline works
 
 cd "$(dirname "$0")/../.." || exit 1
@@ -8,7 +7,7 @@ cd "$(dirname "$0")/../.." || exit 1
 tmp_global=$(mktemp)
 echo "" > "$tmp_global"
 
-# Use non-stopword terms (apple, banana are not stopwords)
+# Use non-stopword terms
 test_text="Apple Banana Apple"
 test_url="http://example.org/page"
 

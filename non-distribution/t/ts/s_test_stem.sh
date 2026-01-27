@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for stem.js
 # Tests that Porter stemmer correctly reduces words to their root forms
 
 cd "$(dirname "$0")/../.." || exit 1

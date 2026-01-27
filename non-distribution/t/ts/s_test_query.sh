@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for query.js
 # Tests that query returns matching lines from global index
 
 cd "$(dirname "$0")/../.." || exit 1

@@ -1,10 +1,9 @@
 #!/bin/bash
-# This is a student test for getText.js
 # Tests that HTML tags are stripped and text is extracted
 
 cd "$(dirname "$0")/../.." || exit 1
 
-# Test basic HTML stripping
+# Basic HTML stripping
 result=$(echo '<html><body><h1>Hello</h1><p>World</p></body></html>' | ./c/getText.js)
 
 # Check that result contains "Hello" and "World" but no HTML tags

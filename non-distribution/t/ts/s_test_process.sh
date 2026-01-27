@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for process.sh
 # Tests that text is normalized and stopwords are removed
 
 cd "$(dirname "$0")/../.." || exit 1

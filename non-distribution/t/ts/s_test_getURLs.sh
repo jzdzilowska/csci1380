@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for getURLs.js
 # Tests that URLs are extracted and resolved to absolute paths
 
 cd "$(dirname "$0")/../.." || exit 1

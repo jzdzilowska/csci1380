@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for combine.sh
 # Tests that n-grams (1,2,3) are generated correctly
 
 cd "$(dirname "$0")/../.." || exit 1

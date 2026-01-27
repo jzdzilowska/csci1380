@@ -1,5 +1,4 @@
 #!/bin/bash
-# This is a student test for merge.js
 # Tests that local index merges correctly with global index
 
 cd "$(dirname "$0")/../.." || exit 1
