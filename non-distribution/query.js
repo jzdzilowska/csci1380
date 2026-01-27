@@ -29,8 +29,47 @@ const fs = require('fs');
 const {execSync} = require('child_process');
 const path = require('path');
 
+// Get the directory where query.js is located
+const scriptDir = path.dirname(process.argv[1]);
 
 function query(indexFile, args) {
+  // 1. Join the search terms
+  const input = args.join(' ');
+  
+  // 2. Process and stem the query using existing components
+  // This normalizes, removes stopwords, and stems the input
+  let processed;
+  try {
+    processed = execSync(`echo "${input}" | ./c/process.sh | ./c/stem.js | tr "\\r\\n" "  "`, {
+      encoding: 'utf-8',
+      cwd: scriptDir,
+    }).trim();
+  } catch (e) {
+    // If processing fails (e.g., all stopwords), return empty
+    return;
+  }
+  
+  if (!processed) {
+    return;
+  }
+  
+  // 3. Read the global index file
+  const indexPath = path.join(scriptDir, indexFile);
+  let data;
+  try {
+    data = fs.readFileSync(indexPath, 'utf-8');
+  } catch (e) {
+    console.error('Error reading index file:', e.message);
+    return;
+  }
+  
+  // 4. Search for matching lines and print them
+  const lines = data.split('\n');
+  for (const line of lines) {
+    if (line.includes(processed)) {
+      console.log(line);
+    }
+  }
 }
 
 const args = process.argv.slice(2); // Get command-line arguments
@@ -41,3 +80,5 @@ if (args.length < 1) {
 
 const indexFile = 'd/global-index.txt'; // Path to the global index file
 query(indexFile, args);
+
+// It reads the full global inverted index file d/global-index.txt into memory as a big string???? memory???

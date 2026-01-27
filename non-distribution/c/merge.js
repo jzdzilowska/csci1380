@@ -35,6 +35,7 @@ const fs = require('fs');
 const readline = require('readline'); // read input line by line from disk
 // The `compare` function can be used for sorting.
 const compare = (a, b) => { // sort things by frequency descending
+  // i.e., SEARCH! order by freq high to low, so that the most relevant results appear first in index
   if (a.freq > b.freq) {
     return -1;
   } else if (a.freq < b.freq) {
@@ -159,3 +160,13 @@ const printMerged = (err, data) => {
 // merged: pizza | https://site/a 3 https://site/c 5 https://site/b 2
 //         pasta | https://site/a 11
 // i.e., where does this term appear across all pages, with frequencies
+
+/*
+Overall, merge.js maintains the master search index for the crawler.
+It waits until it has read the entire local index for one page from stdin.
+It then reads the existing global index file from disk using the path passed on the command line.
+Next, it parses both local and global data into in-memory maps so they’re easy to combine.
+For each term, it merges URL–frequency counts, adding frequencies when the same term appears in the same URL again.
+It sorts URLs by descending frequency and terms alphabetically to preserve the required index format.
+Finally, it prints the updated global index to stdout so it can be saved as the new global-index.txt.
+*/
