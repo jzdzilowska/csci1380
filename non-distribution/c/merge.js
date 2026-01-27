@@ -50,11 +50,21 @@ const rl = readline.createInterface({
 // 1. Read the incoming local index data from standard input (stdin) line by line.
 let localIndex = '';
 rl.on('line', (line) => {
+  localIndex += line + '\n';
 });
 
 rl.on('close', () => {
   // 2. Read the global index name/location, using process.argv
   // and call printMerged as a callback
+  const globalIndexFile = process.argv[2];
+  fs.readFile(globalIndexFile, 'utf-8', (err, data) => {
+    if (err) {
+      // If file doesn't exist, treat as empty
+      printMerged(null, '');
+    } else {
+      printMerged(null, data);
+    }
+  });
 });
 
 const printMerged = (err, data) => {
@@ -76,12 +86,33 @@ const printMerged = (err, data) => {
   // 3. For each line in `localIndexLines`, parse them and add them to the `local` object
   // where keys are terms and values store a url->freq map (one entry per url).
   for (const line of localIndexLines) {
+    if (!line.trim()) continue;
+    const parts = line.split(' | ');
+    const term = parts[0].trim();
+    const freq = parseInt(parts[1].trim());
+    const url = parts[2].trim();
+    
+    if (!local[term]) {
+      local[term] = {};
+    }
+    local[term][url] = (local[term][url] || 0) + freq;
   }
 
   // 4. For each line in `globalIndexLines`, parse them and add them to the `global` object
   // where keys are terms and values are url->freq maps (one entry per url).
   // Use the .trim() method to remove leading and trailing whitespace from a string.
   for (const line of globalIndexLines) {
+    if (!line.trim()) continue;
+    const parts = line.split(' | ');
+    const term = parts[0].trim();
+    const rest = parts[1].trim().split(' ');
+    
+    const grouped = {};
+    for (let i = 0; i < rest.length; i += 2) {
+      const url = rest[i];
+      const freq = parseInt(rest[i + 1]);
+      grouped[url] = freq;
+    }
     global[term] = grouped; // Map<url, freq>
   }
 
@@ -91,7 +122,28 @@ const printMerged = (err, data) => {
   //     - Sum frequencies for duplicate urls.
   // - If the term does not exist in the global index:
   //     - Add it as a new entry with the local index's data.
+  for (const term in local) {
+    if (!global[term]) {
+      global[term] = {};
+    }
+    for (const url in local[term]) {
+      global[term][url] = (global[term][url] || 0) + local[term][url];
+    }
+  }
+
   // 6. Print the merged index to the console in the same format as the global index file:
   //    - Each line contains a term, followed by a pipe (`|`), followed by space-separated pairs of `url` and `freq`.
   //    - Terms should be printed in alphabetical order.
+  const sortedTerms = Object.keys(global).sort();
+  for (const term of sortedTerms) {
+    const urlFreqPairs = [];
+    for (const url in global[term]) {
+      urlFreqPairs.push({url, freq: global[term][url]});
+    }
+    // Sort by frequency descending
+    urlFreqPairs.sort(compare);
+    
+    const pairStr = urlFreqPairs.map((p) => `${p.url} ${p.freq}`).join(' ');
+    console.log(`${term} | ${pairStr}`);
+  }
 };
