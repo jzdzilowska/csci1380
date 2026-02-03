@@ -125,4 +125,25 @@ distribution.node.start(() => {
 
 # Results and Reflections
 
-> ...
+## M1: Serialization / Deserialization
+
+### Summary
+185 lines of code total. Key challenges included:
+
+1. **Avoiding double-encoding in recursive structures**: Biggest problem I've encountered while working on my implementation. Initially, calling stringify at every recursion level caused exponential string growth for nested objects. Managed to solve this by separating serializeHelper (returns objects) from serialize (calls stringify once at the end).
+
+2. **Handling special JS values**: NaN, infinity, etc. can't be directly represented in JSON. Solved by using string markers (e.g., `"NaN"`) and a wrapper that's type-tagged: `{type: ..., value: ...}`.
+
+3. **Deserializing functions**: Haven't seen the eval function beforehand, so this was new. The main issue was that functions need to be reconstructed from their string representation, which this one  (`eval('(' + fnString + ')')`) solved.  Also, handles both arrow functions and regular function declarations. Learned why one must use paranthesis in this case, to force expression evaluation. Yay!
+
+### Correctness & Performance Characterization
+
+*Correctness*: 46 tests total (5 student tests + 5 scenarios + 36 provided tests); these take ~0.6 seconds to execute. This includes objects with nested structures, all primitive types (number, string, boolean, null, undefined, BigInt), special values (NaN, Infinity), complex objects (Date, Error, Array, Object), and functions.
+
+*Performance*: Mentioned in the latency portion of package.json, same with dev machine specification. But: 
+
+| Workload | Serialize (μs) | Deserialize (μs) | Total (μs) |
+|----------|----------------|------------------|------------|
+| Base Types (T2) | 3.46 | 7.18 | 10.64 |
+| Functions (T3) | 1.73 | 4.67 | 6.40 |
+| Complex Structures (T4) | 16.53 | 27.75 | 44.28 |
