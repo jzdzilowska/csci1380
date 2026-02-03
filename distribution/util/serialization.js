@@ -37,6 +37,11 @@ function serialize(object) {
     return JSON.stringify({type: 'boolean', value: object});
   }
 
+  // T3
+  if (typeof object === 'function') {
+    return JSON.stringify({type: 'function', value: object.toString()});
+  }
+
   // fallback for now - TODO: extend later
   return JSON.stringify({type: 'unknown', value: String(object)});
 }
@@ -77,6 +82,16 @@ function deserialize(string) {
 
     case 'boolean':
       return parsed.value;
+
+    case 'function': {
+      // eval - execute code from a string
+      // whats within eval must be a valid JS expression
+      // i.e., evaluate to a single value, not a statement/block of code
+      // i.e., force an expression to be evaluated
+      // we wrap the function string in parentheses to make it a valid expression
+      const fn = eval('(' + parsed.value + ')');
+      return fn;
+    }
 
     default:
       throw new Error("Unknown serialized type: ${parsed.type}");

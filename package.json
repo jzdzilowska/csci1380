@@ -22,8 +22,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "yargs": "^17.7.2",
-    "@brown-ds/distribution": "latest"
+    "@brown-ds/distribution": "^0.2.32",
+    "yargs": "^17.7.2"
   },
   "report": [
     {
