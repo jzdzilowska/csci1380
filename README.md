@@ -142,8 +142,16 @@ distribution.node.start(() => {
 
 *Performance*: Mentioned in the latency portion of package.json, same with dev machine specification. But: 
 
+**Local Development (macOS, Apple M2):**
 | Workload | Serialize (μs) | Deserialize (μs) | Total (μs) |
 |----------|----------------|------------------|------------|
 | Base Types (T2) | 3.46 | 7.18 | 10.64 |
 | Functions (T3) | 1.73 | 4.67 | 6.40 |
 | Complex Structures (T4) | 16.53 | 27.75 | 44.28 |
+
+**AWS EC2 (Linux x64, Node v20.20.0):**
+| Workload | Serialize (μs) | Deserialize (μs) | Total (μs) |
+|----------|----------------|------------------|------------|
+| Base Types (T2) | 7.34 | 12.42 | 19.76 |
+| Functions (T3) | 4.79 | 9.21 | 14.00 |
+| Complex Structures (T4) | 24.47 | 37.36 | 61.83 |
