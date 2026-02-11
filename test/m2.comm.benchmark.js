@@ -440,10 +440,10 @@ async function runBenchmarks() {
       });
     });
 
-    // Wait for remote node to be ready by polling
+    // Wait for remote node to be ready by polling (longer on slow envs e.g. EC2)
     let remoteReady = false;
-    for (let i = 0; i < 20; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 500));
       try {
         await new Promise((resolve, reject) => {
           distributionLib.local.comm.send(['sid'],
