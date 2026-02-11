@@ -30,16 +30,10 @@ function bootstrap(config) {
   const {setup} = require('./distribution/all/all.js');
   distribution.all = setup({gid: 'all'});
 
-  /* Overrides when missing functionality from previous milestone or extra credit is needed */
-
-  /* __start_M3_solution__
+  // override spawn, stop, and createRPC with library implementations for M2 scenario
   distribution.util.wire.createRPC = distributionLib.util.wire.createRPC;
-  distribution.local.routes = distributionLib.local.routes;
   distribution.local.status.spawn = distributionLib.local.status.spawn;
   distribution.local.status.stop = distributionLib.local.status.stop;
-  distribution.local.comm = distributionLib.local.comm;
-  distribution.node.start = distributionLib.node.start;
-  __end_M3_solution__ */
 
   for (const [key, service] of Object.entries(distribution.local)) {
     distribution.local.routes.put(service, key, () => {});

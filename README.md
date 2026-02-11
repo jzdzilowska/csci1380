@@ -177,10 +177,16 @@ Key challenges included:
 *Correctness*: Wrote 5 tests in `m2.student.test.js`; cover status retrieval, routes registration/removal, and comm message sending.
 
 *Performance*: Characterized the performance of comm & RPC by sending 1000 service requests in a tight loop. Average throughput and latency is recorded in `package.json`:
-- Sequential throughput: ~5,200-9,600 req/s
-- Sequential latency: ~77-170 μs average
-- Parallel throuhgput (c=100): ~12,700 req/s
-- Parallel latency (c=100): ~6.4 ms average
+
+**comm (your implementation):**
+- Sequential throughput: ~5,500-9,200 req/s
+- Sequential latency: ~98-163 μs average
+- Parallel throughput (c=100): ~11,674 req/s
+- Parallel latency (c=100): ~7.11 ms average
+
+**RPC (library's built-in createRPC):**
+- Sequential throughput: ~673 req/s
+- Sequential latency: ~1.46 ms average (p50: 1.36 ms, p95: 1.96 ms, p99: 3.35 ms)
 
 
 ## Key Feature

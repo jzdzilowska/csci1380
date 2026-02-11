@@ -103,9 +103,7 @@ test('(5 pts) (scenario) use rpc', (done) => {
 
   const node = {ip: '127.0.0.1', port: 9009};
 
-  // rpcwrapper for addone, will execute locally but should b callable remotely
-  // sends a mess back to the original node to execute the function
-  let addOneRPC = distribution.util.wire.createRPC(addOne);
+  let addOneRPC = distribution.util.wire.createRPC(distribution.util.wire.toAsync(addOne));
 
   const rpcService = {
     addOne: addOneRPC,
