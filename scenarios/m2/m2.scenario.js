@@ -14,7 +14,10 @@ test('(2 pts) (scenario) simple callback practice', () => {
     results.push(result);
   }
 
-  // ...
+  // Call add three times with different arguments, storing results via callback
+  add(1, 2, storeResults); // 3
+  add(2, 3, storeResults); // 5
+  add(3, 4, storeResults); // 7
 
   expect(results).toEqual([3, 5, 7]);
 });
@@ -25,25 +28,29 @@ test('(2 pts) (scenario) collect errors and successful results', (done) => {
           failures in an array.
       */
 
-  // Sample service
+  // succeeds with good apples
   const appleDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good apples');
   };
 
+  // fails with b pineapples
   const pineappleDeliveryService = (callback) => {
-    // ...
+    callback(new Error('bad pineapples'), null);
   };
 
+  // succeeds w good
   const bananaDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good bananas');
   };
 
+  // succeeds w good peaches
   const peachDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good peaches');
   };
 
+  // fails w bad mangoes
   const mangoDeliveryService = (callback) => {
-    // ...
+    callback(new Error('bad mangoes'), null);
   };
 
   const services = [
@@ -96,7 +103,9 @@ test('(5 pts) (scenario) use rpc', (done) => {
 
   const node = {ip: '127.0.0.1', port: 9009};
 
-  let addOneRPC = '?';
+  // rpcwrapper for addone, will execute locally but should b callable remotely
+  // sends a mess back to the original node to execute the function
+  let addOneRPC = distribution.util.wire.createRPC(addOne);
 
   const rpcService = {
     addOne: addOneRPC,
