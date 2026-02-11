@@ -176,17 +176,19 @@ Key challenges included:
 ## Correctness & Performance Characterization
 *Correctness*: Wrote 5 tests in `m2.student.test.js`; cover status retrieval, routes registration/removal, and comm message sending.
 
-*Performance*: Characterized the performance of comm & RPC by sending 1000 service requests in a tight loop. Average throughput and latency is recorded in `package.json`:
+*Performance*: Characterized using `test/m2.comm.benchmark.js` (1000 iterations per benchmark). Results are in `package.json`.
 
-**comm (your implementation):**
-- Sequential throughput: ~5,500-9,200 req/s
-- Sequential latency: ~98-163 μs average
-- Parallel throughput (c=100): ~11,674 req/s
-- Parallel latency (c=100): ~7.11 ms average
+**Local development (macOS):**
+- comm sequential (status.get nid): 6,311 req/s, 145 μs avg latency
+- comm sequential (status.get sid): 9,909 req/s, 93 μs avg latency
+- comm parallel: 14,250 req/s, 5.72 ms avg
+- RPC sequential: ~673 req/s, ~1.46 ms avg 
 
-**RPC (library's built-in createRPC):**
-- Sequential throughput: ~673 req/s
-- Sequential latency: ~1.46 ms average (p50: 1.36 ms, p95: 1.96 ms, p99: 3.35 ms)
+**AWS EC2 (Ubuntu, Linux x64, Node v20.20.0):**
+- comm sequential (status.get nid): 1,886 req/s, 475 μs avg latency
+- comm sequential (status.get sid): 2,771 req/s, 320 μs avg latency
+- comm parallel (c=100): 6,103 req/s, 13.09 ms avg
+- RPC benchmark did not complete on this run (remote node failed to start within timeout).
 
 
 ## Key Feature
