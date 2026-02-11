@@ -30,8 +30,9 @@ function getBuiltinServices() {
  * @returns {void}
  */
 function get(configuration, callback) {
-  // optional callback
-  callback = callback || function() {};
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   if (configuration == null) {
     return callback(new Error('Service name cannot be null or undefined'));
   }
@@ -49,16 +50,24 @@ function get(configuration, callback) {
     return callback(new Error('Invalid configuration format'));
   }
 
-  // gid is 'local' / not specified - then look in local services
+    // gid is 'local' / not specified - then look in local services
+    if (typeof serviceName !== 'string' || serviceName === '') {
+    return callback(new Error('Service name must be a non-empty string'));
+  }
   if (!gid || gid === 'local') {
     // check dynamically registered services
     if (serviceTable[serviceName]) {
       return callback(null, serviceTable[serviceName]);
     }
-    // then built-in services
-    const builtins = getBuiltinServices();
-    if (builtins[serviceName]) {
-      return callback(null, builtins[serviceName]);
+
+    // then check built-in services (w safe access)
+    try {
+      const builtins = getBuiltinServices();
+      if (builtins[serviceName]) {
+        return callback(null, builtins[serviceName]);
+      }
+    } catch (err) {
+      // TODO: just continue to error?
     }
     return callback(new Error(`Service '${serviceName}' not found`));
   }
@@ -76,16 +85,18 @@ function get(configuration, callback) {
  * @returns {void}
  */
 function put(service, configuration, callback) {
-  callback = callback || function() {};
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   if (service == null) {
     return callback(new Error('Service cannot be null or undefined'));
   }
-
+  // val config (service name)
   if (typeof configuration !== 'string' || configuration === '') {
     return callback(new Error('Service name must be a non-empty string'));
   }
 
-  // store service in service table
+  // Store the service in the service table
   serviceTable[configuration] = service;
   // ret the name (eg routes.put(exampleService, "f", console.log) > f)
   return callback(null, configuration);
@@ -96,7 +107,9 @@ function put(service, configuration, callback) {
  * @param {Callback} callback
  */
 function rem(configuration, callback) {
-  callback = callback || function() {};
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   if (typeof configuration !== 'string' || configuration === '') {
     return callback(new Error('Service name must be a non-empty string'));
   }

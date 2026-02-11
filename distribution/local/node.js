@@ -80,19 +80,58 @@ function setNodeConfig() {
  * @returns {void}
  */
 function start(callback) {
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   const server = http.createServer((req, res) => {
     /* Your server will be listening for PUT requests. */
+    const serialize = globalThis.distribution?.util?.serialize;
+    const deserialize = globalThis.distribution?.util?.deserialize;
 
-    // Write some code...
+    const sendResponse = (error, value) => {
+      try {
+        const response = serialize([error, value]);
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(response);
+      } catch (err) {
+        // fallback
+        res.writeHead(500, {'Content-Type': 'text/plain'});
+        res.end('Internal server error: failed to serialize response');
+      }
+    };
 
+    if (typeof serialize !== 'function' || typeof deserialize !== 'function') {
+      res.writeHead(500, {'Content-Type': 'text/plain'});
+      res.end('Internal server error: serialization utilities not available');
+      return;
+    }
+    // only accept PUT requests
+    if (req.method !== 'PUT') {
+      try {
+        const errorResponse = serialize(new Error('Only PUT requests are supported'));
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(errorResponse);
+      } catch (err) {
+        res.writeHead(400, {'Content-Type': 'text/plain'});
+        res.end('Only PUT requests are supported');
+      }
+      return;
+    }
 
     /*
       The path of the http request will determine the service to be used.
-      The url will have the form: http://node_ip:node_port/service/method
+      url will have the form: http://node_ip:node_port/<gid>/<service>/<method>
     */
+    const parsedUrl = url.parse(req.url || '', true);
+    const pathname = parsedUrl.pathname || '';
 
-    // Write some code...
+    // path: /<gid>/<service>/<method>
+    const pathParts = pathname.split('/').filter((part) => part !== '');
+    if (pathParts.length < 3) {
+      return sendResponse(new Error('Invalid path format. Expected /<gid>/<service>/<method>'), null);
+    }
 
+    const [gid, serviceName, methodName] = pathParts;
 
     /*
       A common pattern in handling HTTP requests in Node.js is to have a
@@ -108,15 +147,26 @@ function start(callback) {
       Our nodes expect data in JSON format.
     */
 
-    // Write some code...
-
     /** @type {any[]} */
     const body = [];
 
     req.on('data', (chunk) => {
+      body.push(chunk);
+    });
+    req.on('error', (err) => {
+      sendResponse(new Error(`Request error: ${err.message}`), null);
     });
 
     req.on('end', () => {
+      // increment message count safely
+      try {
+        const status = globalThis.distribution?.local?.status;
+        if (status && typeof status.incrementCount === 'function') {
+          status.incrementCount();
+        }
+      } catch (err) {
+        // errors in incrementing count
+      }
 
       /*
         Here, you can handle the service requests.
@@ -125,8 +175,43 @@ function start(callback) {
         Then, you need to serialize the result and send it back to the caller.
       */
 
-      // Write some code...
+      // parsing request body (serialized message/arguments)
+      const bodyString = Buffer.concat(body).toString();
+      let args = [];
+      if (bodyString) {
+        try {
+          args = deserialize(bodyString);
+        } catch (err) {
+          return sendResponse(new Error(`Failed to deserialize request body: ${err.message}`), null);
+        }
+      }
+      if (!Array.isArray(args)) {
+        args = [];
+      }
 
+      // routes service to get the requested service
+      const routes = globalThis.distribution?.local?.routes;
+      if (!routes || typeof routes.get !== 'function') {
+        return sendResponse(new Error('Routes service not available'), null);
+      }
+      routes.get({service: serviceName, gid: gid}, (routeError, service) => {
+        if (routeError) {
+          return sendResponse(routeError, null);
+        }
+        if (!service) {
+          return sendResponse(new Error(`Service '${serviceName}' not found`), null);
+        }
+        if (typeof service[methodName] !== 'function') { // method exists on service?
+          return sendResponse(new Error(`Method '${methodName}' not found on service '${serviceName}'`), null);
+        }
+        try {
+          service[methodName](...args, (error, value) => {
+            sendResponse(error, value);
+          });
+        } catch (err) {
+          sendResponse(err instanceof Error ? err : new Error(String(err)), null);
+        }
+      });
     });
   });
 

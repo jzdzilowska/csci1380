@@ -21,9 +21,20 @@ function incrementCount() {
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  // optional callback, if not provided use a no-op func
-  callback = callback || function() {};
-  const config = globalThis.distribution.node.config;
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
+  // missing / invalid config
+  if (configuration === undefined || configuration === null) {
+    return callback(new Error('Configuration key is required'));
+  }
+  if (typeof configuration !== 'string') {
+    return callback(new Error('Configuration key must be a string'));
+  }
+  const config = globalThis.distribution?.node?.config;
+  if (!config) {
+    return callback(new Error('Node configuration not available'));
+  }
 
   switch (configuration) {
     case 'nid':
@@ -58,7 +69,7 @@ function get(configuration, callback) {
       // Unknown config key, return an error
       return callback(new Error(`Status key '${configuration}' not found`));
   }
-};
+}
 
 
 /**
@@ -66,6 +77,9 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function spawn(configuration, callback) {
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   callback(new Error('status.spawn not implemented'));
 }
 
@@ -73,6 +87,9 @@ function spawn(configuration, callback) {
  * @param {Callback} callback
  */
 function stop(callback) {
+  if (typeof callback !== 'function') {
+    callback = function() {};
+  }
   callback(new Error('status.stop not implemented'));
 }
 
