@@ -54,7 +54,7 @@ function mem(config) {
    * @param {Callback} callback
    */
   function append(state, configuration, callback) {
-    return callback(new Error('mem.append not implemented'));
+    return callback(new Error('mem.append not implemented')); // You'll need to implement this method for the distributed processing milestone.
   }
 
   /**

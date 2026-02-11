@@ -47,7 +47,7 @@ function del(configuration, callback) {
  * @param {Callback} callback
  */
 function append(state, configuration, callback) {
-  return callback(new Error('store.append not implemented'));
+  return callback(new Error('store.append not implemented')); // You'll need to implement this method for the distributed processing milestone.
 }
 
 module.exports = {put, get, del, append};

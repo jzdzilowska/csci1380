@@ -25,7 +25,7 @@ test('(5 pts) (scenario) use the local store', (done) => {
 });
 
 
-test('(5 pts) (scenario) hash functions return different nodes', () => {
+test('(5 pts) (scenario) two keys map to the same node', () => {
   /*
 
         Identify two keys that consistentHash maps to the same node. You will
@@ -56,11 +56,12 @@ test('(5 pts) (scenario) hash functions return different nodes', () => {
 test('(5 pts) (scenario) hash functions return the same node', () => {
   /*
 
-        Identify a key for which the three hash functions agree about its placement.
+        Identify a key for which two hash functions agree about its placement.
         You will likely need to try a few (but not many) keys.
 
     */
 
+  // Feel free to change the nodes (both their number and configuration)
   const nodeIds = [
     util.id.getNID({ip: '192.168.0.1', port: 8000}),
     util.id.getNID({ip: '192.168.0.2', port: 8000}),
@@ -72,12 +73,10 @@ test('(5 pts) (scenario) hash functions return the same node', () => {
 
   const kid = util.id.getID(key);
 
-  const a = util.id.naiveHash(kid, nodeIds);
-  const b = util.id.rendezvousHash(kid, nodeIds);
-  const c = util.id.consistentHash(kid, nodeIds);
+  let a = util.id.consistentHash(kid, nodeIds); // You can also experiment with other hash functions
+  let b = '?'; // Pick one of the other hash functions
 
-  expect(a).toEqual(a);
-  expect(b).toEqual(c);
+  expect(a).toEqual(b);
 });
 
 const n1 = {ip: '127.0.0.1', port: 9001};

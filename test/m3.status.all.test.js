@@ -5,6 +5,35 @@ const id = distribution.util.id;
 
 jest.spyOn(process, 'exit').mockImplementation((n) => { });
 
+test('(2 pts) local.comm.send(all.status.get(nid))', (done) => {
+  const mygroupConfig = {gid: 'mygroup'};
+  const nids = Object.values(mygroupGroup).map((node) => id.getNID(node));
+  const remote = {node: n5, service: 'groups', method: 'put'};
+
+  // first register mygroup on n5
+  distribution.local.comm.send([mygroupConfig, mygroupGroup], remote, (e, v) => {
+    try {
+      expect(e).toBeFalsy();
+    } catch (error) {
+      done(error);
+      return;
+    }
+    const remote = {node: n5, gid: 'mygroup', service: 'status', method: 'get'};
+
+    // from local node, run mygroup.status.get() on n5 via send()
+    distribution.local.comm.send(['nid'], remote, (e, v) => {
+      try {
+        expect(e).toEqual({});
+        expect(Object.values(v).length).toEqual(nids.length);
+        expect(Object.values(v)).toEqual(expect.arrayContaining(nids));
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
+  });
+});
+
 test('(2 pts) all.status.get(nid)', (done) => {
   const nids = Object.values(mygroupGroup).map((node) => id.getNID(node));
 
@@ -17,6 +46,94 @@ test('(2 pts) all.status.get(nid)', (done) => {
     } catch (error) {
       done(error);
     }
+  });
+});
+
+test('(0 pts) all.status.get(nid) matches distributed status', (done) => {
+  const remote = {service: 'status', method: 'get'};
+  distribution.mygroup.comm.send(['nid'], remote, (e, v) => {
+    if (Object.keys(e).length !== 0) {
+      done(e);
+      return;
+    }
+    const expected = Object.values(v);
+    distribution.mygroup.status.get('nid', (e, v) => {
+      try {
+        expect(e).toEqual({});
+        expect(v).toEqual(expect.arrayContaining(expected));
+        expect(v).toHaveLength(expected.length);
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
+  });
+});
+
+test('(0 pts) all.status.get(sid)', (done) => {
+  const remote = {service: 'status', method: 'get'};
+  distribution.mygroup.comm.send(['sid'], remote, (e, v) => {
+    if (Object.keys(e).length !== 0) {
+      done(e);
+      return;
+    }
+    const expected = Object.values(v);
+    distribution.mygroup.status.get('sid', (e, v) => {
+      try {
+        expect(e).toEqual({});
+        expect(v).toEqual(expect.arrayContaining(expected));
+        expect(v).toHaveLength(expected.length);
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
+  });
+});
+
+test('(0 pts) all.status.get(heapTotal)', (done) => {
+  const remote = {service: 'status', method: 'get'};
+  distribution.mygroup.comm.send(['heapTotal'], remote, (e, v) => {
+    if (Object.keys(e).length !== 0) {
+      done(e);
+      return;
+    }
+    const expected = Object.values(v).reduce((acc, val) => acc + val, 0);
+    distribution.mygroup.status.get('heapTotal', (e, v) => {
+      try {
+        expect(e).toEqual({});
+        expect(v).toEqual(expected);
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
+  });
+});
+
+test('(0 pts) all.status.get(heapUsed)', (done) => {
+  const remote = {service: 'status', method: 'get'};
+  distribution.mygroup.comm.send(['heapUsed'], remote, (e, v) => {
+    if (Object.keys(e).length !== 0) {
+      done(e);
+      return;
+    }
+    const expectedSids = Object.keys(v);
+    distribution.mygroup.status.get('heapUsed', (e, v) => {
+      try {
+        expect(e).toEqual({});
+        expect(Object.keys(v)).toHaveLength(expectedSids.length);
+        expectedSids.forEach((sid) => {
+          expect(v[sid]).toBeDefined();
+        });
+        Object.values(v).forEach((value) => {
+          expect(typeof value).toBe('number');
+        });
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
   });
 });
 

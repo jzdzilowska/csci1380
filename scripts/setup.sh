@@ -11,18 +11,7 @@ function staleness()
 {
   course_repo="brown-cs1380/stencil"
 
-  git fetch --quiet
-  branch=$(git symbolic-ref --short HEAD)
-  remote=""
-
-  if git remote get-url upstream >/dev/null 2>&1; then
-    remote="upstream"
-  elif git remote get-url origin >/dev/null 2>&1; then
-    url="$(git remote get-url origin 2>/dev/null || true)"
-    if [[ "$url" == *"$course_repo"* ]]; then
-      remote="origin"
-    fi
-  fi
+  remote="upstream"
 
   if [ -z "$remote" ]; then
     echo "[setup] could not find a remote named 'upstream' pointing to the course repo."
@@ -32,7 +21,9 @@ function staleness()
     return 0
   fi
 
-  url="$(git remote get-url "$remote" 2>/dev/null || true)"
+  git fetch --quiet upstream
+  branch=$(git symbolic-ref --short HEAD)
+
   base_ref="refs/remotes/${remote}/${branch}"
 
   if ! git show-ref --verify --quiet "$base_ref"; then

@@ -116,6 +116,7 @@ test('(5 pts) (scenario) use the gossip service', (done) => {
   let nExpected = 0;
 
   // Experiment with the subset function used in the gossip service...
+  // The subset function takes a list of nodes and returns the number of nodes to which the message should be sent
   let config = {gid: 'groupD', subset: (lst) => '?'};
 
   // Instantiated groupD

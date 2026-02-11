@@ -166,13 +166,6 @@ test('(5 pts) serialize and deserialize array with references deep', () => {
   expect(deserialized).toEqual(original);
 });
 
-test('(0 pts) serialize native function uses native mapping', () => {
-  const nativeFn = require('path').join;
-  const serialized = util.serialize(nativeFn);
-  const deserialized = util.deserialize(serialized);
-  expect(deserialized).toBe(nativeFn);
-});
-
 test('(0 pts) serialize and deserialize preserves cyclic references', () => {
   const original = {};
   original.self = original;
@@ -194,4 +187,25 @@ test('(0 pts) serialize native function uses native mapping', () => {
   const serialized = util.serialize(nativeFn);
   const deserialized = util.deserialize(serialized);
   expect(deserialized).toBe(nativeFn);
+});
+
+test('(0 pts) serializeBigInt', () => {
+  const value = BigInt('9007199254740993');
+  const serialized = util.serialize(value);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toEqual(value);
+});
+
+test('(0 pts) serializeBigIntHex', () => {
+  const value = BigInt('0x1fffffffffffff');
+  const serialized = util.serialize(value);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toEqual(value);
+});
+
+test('(0 pts) serializeBigIntInObject', () => {
+  const object = {a: BigInt('123456789012345678')};
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toEqual(object);
 });

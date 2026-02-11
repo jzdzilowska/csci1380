@@ -6,6 +6,7 @@ R_FOLDER=${R_FOLDER:-}
 cd "$(dirname "$0")/..$R_FOLDER" || exit 1
 
 DIFF=${DIFF:-diff}
+EXIT=0
 
 cat /dev/null >d/visited.txt
 cat /dev/null >d/global-index.txt
@@ -39,7 +40,8 @@ for t in "${ts[@]}"; do
     then
         true
     else
-        echo "$0 failure: $t not in global index"
+        echo "$0 failure: $t not in global index" >&2
+        EXIT=1
     fi
 done
 
@@ -48,7 +50,8 @@ for u in "${us[@]}"; do
     then
         true
     else
-        echo "$0 failure: $u not in global index"
+        echo "$0 failure: $u not in global index" >&2
+        EXIT=1
     fi
 done
 
@@ -57,8 +60,12 @@ for v in "${vs[@]}"; do
     then
 	true
     else
-        echo "$0 failure: $v not in visited urls"
+        echo "$0 failure: $v not in visited urls" >&2
+        EXIT=1
     fi
 done
 
-echo "$0 success: all tests passed"
+if [ $EXIT -eq 0 ]; then
+    echo "$0 success: all tests passed"
+fi
+exit $EXIT

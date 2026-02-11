@@ -20,6 +20,29 @@ test('(3 pts) all.groups.del(random)', (done) => {
   });
 });
 
+test('(0 pts) all.groups.put/get(mygroup)', (done) => {
+  const config = {gid: 'mygroup'};
+
+  distribution.mygroup.groups.put(config, mygroupGroup, (e, v) => {
+    distribution.mygroup.groups.get('mygroup', (e, v) => {
+      try {
+        expect(e).toEqual({});
+        Object.keys(mygroupGroup).forEach((sid) => {
+          expect(v[sid]).toBeDefined();
+          Object.keys(mygroupGroup).forEach((memberSid) => {
+            // Compare only ip and port to allow for auxiliary fields (e.g., onStart method)
+            expect(v[sid][memberSid].ip).toEqual(mygroupGroup[memberSid].ip);
+            expect(v[sid][memberSid].port).toEqual(mygroupGroup[memberSid].port);
+          });
+        });
+        done();
+      } catch (error) {
+        done(error);
+      }
+    });
+  });
+});
+
 test('(2 pts) all.groups.put(browncs)', (done) => {
   const g = {
     '507aa': {ip: '127.0.0.1', port: 8080},

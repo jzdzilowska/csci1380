@@ -17,20 +17,6 @@ test('(1 pts) serializeNumber', () => {
   expect(deserialized).toEqual(number);
 });
 
-test('(0 pts) serializeBigInt', () => {
-  const value = BigInt('9007199254740993');
-  const serialized = util.serialize(value);
-  const deserialized = util.deserialize(serialized);
-  expect(deserialized).toEqual(value);
-});
-
-test('(0 pts) serializeBigIntHex', () => {
-  const value = BigInt('0x1fffffffffffff');
-  const serialized = util.serialize(value);
-  const deserialized = util.deserialize(serialized);
-  expect(deserialized).toEqual(value);
-});
-
 test('(1 pts) serializeNaN', () => {
   const number = NaN;
   const serialized = util.serialize(number);
@@ -54,13 +40,6 @@ test('(1 pts) serializeString', () => {
 
 test('(2 pts) serializeSimpleObject', () => {
   const object = {a: 1, b: 2, c: 3};
-  const serialized = util.serialize(object);
-  const deserialized = util.deserialize(serialized);
-  expect(deserialized).toEqual(object);
-});
-
-test('(0 pts) serializeBigIntInObject', () => {
-  const object = {a: BigInt('123456789012345678')};
   const serialized = util.serialize(object);
   const deserialized = util.deserialize(serialized);
   expect(deserialized).toEqual(object);
@@ -258,4 +237,49 @@ test('(0 pts) deserialize rejects invalid argument types', () => {
 test('(0 pts) deserialize rejects unknown serialized types', () => {
   const bad = JSON.stringify({type: 'not-a-real-type', value: 'x'});
   expect(() => util.deserialize(bad)).toThrow();
+});
+
+test('(0 pts) serialize config object', () => {
+  const config = {ip: '127.0.0.1', port: 8001,
+    onStart: function(e) {
+      const onStart = function() {};
+
+      const aCallback = function(...args) {
+        const callback = args.pop();
+
+        const remote = {
+          node: {ip: '127.0.0.1', port: 1234},
+          service: '894caa71b143e1cb48d5ad95fe68c91d3dfa88c94eeecbac44fddb9d87b982a6',
+          method: 'call',
+        };
+
+        const message = args;
+
+        distribution.local.comm.send(message, remote, (error, response) => {
+          if (error) {
+            return callback(error);
+          } else {
+            return callback(null, response);
+          }
+        });
+      };
+
+      if (e) {
+        aCallback(e, null, () => {});
+        return;
+      }
+
+      try {
+        onStart();
+        aCallback(null, global.distribution.node.config, () => {});
+      } catch (e) {
+        aCallback(e, null, () => {});
+      }
+    },
+  };
+  const serialized = util.serialize(config);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized.ip).toEqual(config.ip);
+  expect(deserialized.port).toEqual(config.port);
+  expect(typeof deserialized.onStart).toEqual('function');
 });
