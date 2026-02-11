@@ -155,3 +155,35 @@ distribution.node.start(() => {
 | Base Types (T2) | 7.34 | 12.42 | 19.76 |
 | Functions (T3) | 4.79 | 9.21 | 14.00 |
 | Complex Structures (T4) | 24.47 | 37.36 | 61.83 |
+
+
+## M2#
+
+## Summary
+My implementation is based on 4 components, with appx 593 lines of code:
+- `comm.js`: HTTP client for sending serialized messages to remote nodes
+- `node.js`: HTTP server for handling incoming requests and routing them to services
+- `status.js`: Service for node configuration and status information
+- `routes.js`: Service registry for storing and retrieving services by name
+
+Key challenges included:
+1. **Callbacks**: Nesting callbacks for sequential operations quickly became messy and hard to debug. I dealt with this by being very consistent with the error-first callback pattern & breaking things into smaller helper functions where possible.
+2. **Getting serialization right on both ends**: Messages need to be serialized before sending and deserialized when received, and it's easy to forget one side or double-serialize by accident. Took some trial and error to get `util.serialize`/`util.deserialize` working consistently between the client and server.
+3. **Parsing the URL path correctly**: The server needs to extract the gid, service name, and method from paths like `/<gid>/<service>/<method>`. Edge cases like empty strings or missing parts caused some headaches until I've added proper validation.
+4. **Handling network errors**: Connections can fail, time out, or return unexpected responses - had to make sure every error path actually called the callback with an error instead of silently failing or crashing.
+
+
+## Correctness & Performance Characterization
+*Correctness*: Wrote 5 tests in `m2.student.test.js`; cover status retrieval, routes registration/removal, and comm message sending.
+
+*Performance*: Characterized the performance of comm & RPC by sending 1000 service requests in a tight loop. Average throughput and latency is recorded in `package.json`:
+- Sequential throughput: ~5,200-9,600 req/s
+- Sequential latency: ~77-170 μs average
+- Parallel throuhgput (c=100): ~12,700 req/s
+- Parallel latency (c=100): ~6.4 ms average
+
+
+## Key Feature
+`createRPC` takes a function that exists on one machine and makes it callable from a different machine over the network. The caller doesn't need to know where the function actually runs, they just call it like any other function, and the result comes back. Under the hood, it wraps the original function in a way that, when called remotely, sends a message back to the original machine saying "run this function with these inputs." The original machine executes the function locally, then sends the result back over the network.
+
+This is useful since it lets you distribute work across multiple machines while keeping the code simple. I.e., the caller just calls a function, and the networking details are handled automatically.
