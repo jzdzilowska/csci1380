@@ -125,13 +125,19 @@ function start(callback) {
     const parsedUrl = url.parse(req.url || '', true);
     const pathname = parsedUrl.pathname || '';
 
-    // path: /<gid>/<service>/<method>
+    // path: /<gid>/<service>/<method> or legacy /<service>/<method>
     const pathParts = pathname.split('/').filter((part) => part !== '');
-    if (pathParts.length < 3) {
+
+    let gid; let serviceName; let methodName;
+    if (pathParts.length >= 3) {
+      [gid, serviceName, methodName] = pathParts;
+    } else if (pathParts.length === 2) {
+      // backwards-compatible with M2 path format: /<service>/<method>
+      gid = 'local';
+      [serviceName, methodName] = pathParts;
+    } else {
       return sendResponse(new Error('Invalid path format. Expected /<gid>/<service>/<method>'), null);
     }
-
-    const [gid, serviceName, methodName] = pathParts;
 
     /*
       A common pattern in handling HTTP requests in Node.js is to have a

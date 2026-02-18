@@ -72,10 +72,18 @@ function get(configuration, callback) {
     return callback(new Error(`Service '${serviceName}' not found`));
   }
 
-  // If gid is specified & not 'local', look up in the group's distributed services
-  const groupServices = globalThis.distribution?.[gid];
-  if (groupServices && groupServices[serviceName]) {
-    return callback(null, groupServices[serviceName]);
+  // If gid is specified & not 'local', first fall back to local services
+  // (incoming requests should resolve to local service handlers, not distributed ones)
+  if (serviceTable[serviceName]) {
+    return callback(null, serviceTable[serviceName]);
+  }
+  try {
+    const builtins = getBuiltinServices();
+    if (builtins[serviceName]) {
+      return callback(null, builtins[serviceName]);
+    }
+  } catch (err) {
+    // continue to error
   }
   return callback(new Error(`Service '${serviceName}' not found in group '${gid}'`));
 }

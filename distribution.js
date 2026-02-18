@@ -39,6 +39,21 @@ function bootstrap(config) {
     distribution.local.routes.put(service, key, () => {});
   }
 
+  // createRPC registers its callback services in the reference library's
+  // internal routes, not ours. Patch routes.get to fall back to the
+  // reference library's routes when our table doesn't have a match.
+  const userRoutesGet = distribution.local.routes.get;
+  const libRoutesGet = distributionLib.local.routes.get;
+  distribution.local.routes.get = function(config, callback) {
+    userRoutesGet(config, (e, v) => {
+      if (e) {
+        libRoutesGet(config, callback);
+      } else {
+        callback(null, v);
+      }
+    });
+  };
+
   return distribution;
 }
 

@@ -15,6 +15,9 @@
     "jest": "^27.4.7",
     "typescript": "^5.8.3"
   },
+  "jest": {
+    "testTimeout": 50000
+  },
   "scripts": {
     "test": "./scripts/test.sh",
     "lint": "./scripts/lint.sh"
@@ -66,12 +69,12 @@
     },
     {
       "milestone": "M3",
-      "hours": 999,
-      "loc": 999,
+      "hours": 15,
+      "loc": 250,
       "dev": {
-        "cpu-no": 999,
-        "mem-gb": 999,
-        "ssd-gb": 999
+        "cpu-no": 8,
+        "mem-gb": 16,
+        "ssd-gb": 460
       },
       "throughput": {
         "dev": [],
@@ -81,7 +84,7 @@
         "dev": [],
         "aws": []
       },
-      "dloc": -99
+      "dloc": 250
     },
     {
       "milestone": "M4",

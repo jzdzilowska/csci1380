@@ -195,3 +195,22 @@ Key challenges included:
 `createRPC` takes a function that exists on one machine and makes it callable from a different machine over the network. The caller doesn't need to know where the function actually runs, they just call it like any other function, and the result comes back. Under the hood, it wraps the original function in a way that, when called remotely, sends a message back to the original machine saying "run this function with these inputs." The original machine executes the function locally, then sends the result back over the network.
 
 This is useful since it lets you distribute work across multiple machines while keeping the code simple. I.e., the caller just calls a function, and the networking details are handled automatically.
+
+## M3: Node Groups & Gossip Protocols
+
+### Summary
+My implementation comprises 6 new software components, totaling approximately 250 added lines of code over the previous implementation. Key challenges included:
+
+1. **Service instantiation via closures**: Each distributed service (comm, status, groups, routes) needs to be a factory function that captures a group-specific context. Getting `local.groups.put` to dynamically create `distribution[gid]` with properly instantiated services required careful wiring between the local groups service and `all/all.js`'s `setup` function.
+
+2. **Concurrent fan-out in all.comm.send**: Sending messages to all nodes in a group and collecting responses required careful counting to know when all responses have arrived. Errors and values need to be collected in separate maps keyed by SID, and the callback only fires once all nodes have responded.
+
+3. **Extending comm/routes/node.js for GID-aware routing**: The path format changed from `/<service>/<method>` to `/<gid>/<service>/<method>`, which required coordinated updates across three files. `routes.get` now accepts both a string and an `{service, gid}` object, and the node server extracts the gid to route to either local or distributed services.
+
+### Correctness & Performance Characterization
+*Correctness*: 5 student tests covering local.groups CRUD, distributed comm fan-out, routes config formats, and distributed status aggregation. The provided test suite covers all.comm, all.status, all.groups, and all.routes with multi-node setups.
+
+*Performance*: Spawn times depend on the reference library implementation (used via skip.sh for E1).
+
+### Key Feature
+The point of a gossip protocol is scalability. If a node sends a message to all other nodes in its group, the communication cost is O(n) per message, which becomes a bottleneck at scale. With gossip, each node only contacts a random subset (e.g., log(n) nodes), and those nodes forward the message to their own random subsets. This achieves eventual dissemination with O(log(n)) communication per node per round. The trade-off is that delivery is probabilistic and not immediate, but for non-critical information like health checks or membership updates, this is an excellent trade-off that allows the system to scale to thousands of nodes.
