@@ -25,7 +25,9 @@ function groups(config) {
    * @param {Callback} callback
    */
   function put(config, group, callback) {
-    return callback(new Error('groups.put not implemented'));
+    // tell every node in the group to run put
+    const remote = {service: 'groups', method: 'put'};
+    globalThis.distribution[context.gid].comm.send([config, group], remote, callback);
   }
 
   /**
@@ -33,7 +35,8 @@ function groups(config) {
    * @param {Callback} callback
    */
   function del(name, callback) {
-    return callback(new Error('groups.del not implemented'));
+    const remote = {service: 'groups', method: 'del'};
+    globalThis.distribution[context.gid].comm.send([name], remote, callback);
   }
 
   /**
@@ -41,7 +44,9 @@ function groups(config) {
    * @param {Callback} callback
    */
   function get(name, callback) {
-    return callback(new Error('groups.get not implemented'));
+    // each node returns its own view of the group 
+    const remote = {service: 'groups', method: 'get'};
+    globalThis.distribution[context.gid].comm.send([name], remote, callback);
   }
 
   /**
@@ -50,7 +55,8 @@ function groups(config) {
    * @param {Callback} callback
    */
   function add(name, node, callback) {
-    return callback(new Error('groups.add not implemented'));
+    const remote = {service: 'groups', method: 'add'};
+    globalThis.distribution[context.gid].comm.send([name, node], remote, callback);
   }
 
   /**
@@ -59,7 +65,8 @@ function groups(config) {
    * @param {Callback} callback
    */
   function rem(name, node, callback) {
-    return callback(new Error('groups.rem not implemented'));
+    const remote = {service: 'groups', method: 'rem'};
+    globalThis.distribution[context.gid].comm.send([name, node], remote, callback);
   }
 
   return {

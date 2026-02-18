@@ -72,9 +72,11 @@ function get(configuration, callback) {
     return callback(new Error(`Service '${serviceName}' not found`));
   }
 
-  // If gid is specified & not 'local', look up in the group's services
-  // will be handled by the distributed routes service routes.js
-  // return an error since this is the local routes service
+  // If gid is specified & not 'local', look up in the group's distributed services
+  const groupServices = globalThis.distribution?.[gid];
+  if (groupServices && groupServices[serviceName]) {
+    return callback(null, groupServices[serviceName]);
+  }
   return callback(new Error(`Service '${serviceName}' not found in group '${gid}'`));
 }
 

@@ -499,6 +499,7 @@ async function runBenchmarks() {
   } catch (err) {
     console.log(`RPC benchmark error: ${err.message}`);
     console.log('Note: Full RPC benchmark requires library spawn to work properly.');
+    console.log('If the library prints "Invalid serialized object type" (e.g. on AWS), that is a library deserialization issue; comm results are still valid.');
   }
   
   // Close the library's node

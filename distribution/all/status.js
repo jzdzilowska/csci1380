@@ -23,7 +23,22 @@ function status(config) {
    * @param {Callback} callback
    */
   function get(configuration, callback) {
-    callback(new Error('status.get not implemented'));
+    const remote = {service: 'status', method: 'get'};
+
+    // ask every node in the group for their status value
+    globalThis.distribution[context.gid].comm.send([configuration], remote, (e, v) => {
+      // heapTotal should be summed across all nodes
+      if (configuration === 'heapTotal') {
+        const total = Object.values(v).reduce((acc, val) => acc + val, 0);
+        return callback(e, total);
+      }
+      // nid and sid just need a flat list, not keyed by sid
+      if (configuration === 'nid' || configuration === 'sid') {
+        return callback(e, Object.values(v));
+      }
+      // everything else stays as the per-node map but check it
+      callback(e, v);
+    });
   }
 
   /**
@@ -31,14 +46,41 @@ function status(config) {
    * @param {Callback} callback
    */
   function spawn(configuration, callback) {
-    callback(new Error('status.spawn not implemented')); // If you won't implement this, check the skip.sh script.
+    callback(new Error('status.spawn not implemented'));
   }
 
   /**
+   * Stops all nodes in the group except the local node.
    * @param {Callback} callback
    */
   function stop(callback) {
-    callback(new Error('status.stop not implemented')); // If you won't implement this, check the skip.sh script.
+    const id = globalThis.distribution.util.id;
+    const localSid = id.getSID(globalThis.distribution.node.config);
+
+    globalThis.distribution.local.groups.get(context.gid, (e, group) => {
+      if (e || !group) return callback(e || new Error('Group not found'));
+
+      // don't stop ourselves, only stop the other nodes
+      const sids = Object.keys(group).filter((sid) => sid !== localSid);
+      if (sids.length === 0) return callback({}, {});
+
+      /** @type {Object.<string, Error>} */
+      const errors = {};
+      const values = {};
+      let count = 0;
+
+      // send stop to each remote node, collect responses
+      sids.forEach((sid) => {
+        const node = group[sid];
+        const remote = {node, service: 'status', method: 'stop'};
+        globalThis.distribution.local.comm.send([], remote, (e, v) => {
+          if (e) errors[sid] = e;
+          else values[sid] = v;
+          count++;
+          if (count === sids.length) callback(errors, values);
+        });
+      });
+    });
   }
 
   return {get, stop, spawn};

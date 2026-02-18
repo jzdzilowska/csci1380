@@ -22,7 +22,9 @@ function routes(config) {
    * @param {Callback} callback
    */
   function put(service, name, callback) {
-    return callback(new Error('routes.put not implemented'));
+    // register this service on every node in the group
+    const remote = {service: 'routes', method: 'put'};
+    globalThis.distribution[context.gid].comm.send([service, name], remote, callback);
   }
 
   /**
@@ -30,7 +32,9 @@ function routes(config) {
    * @param {Callback} callback
    */
   function rem(configuration, callback) {
-    return callback(new Error('routes.rem not implemented'));
+    // remove the service from every node in the group
+    const remote = {service: 'routes', method: 'rem'};
+    globalThis.distribution[context.gid].comm.send([configuration], remote, callback);
   }
 
   return {put, rem};
