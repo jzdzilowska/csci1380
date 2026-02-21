@@ -77,11 +77,11 @@
         "ssd-gb": 460
       },
       "throughput": {
-        "dev": [],
+        "dev": [10.21],
         "aws": []
       },
       "latency": {
-        "dev": [],
+        "dev": [97.99],
         "aws": []
       },
       "dloc": 250

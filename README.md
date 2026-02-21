@@ -199,18 +199,18 @@ This is useful since it lets you distribute work across multiple machines while 
 ## M3: Node Groups & Gossip Protocols
 
 ### Summary
-My implementation comprises 6 new software components, totaling approximately 250 added lines of code over the previous implementation. Key challenges included:
+My implementation has 6 new software components, appx 250 added lines of code added since previous implementation. Key challenges included:
 
-1. **Service instantiation via closures**: Each distributed service (comm, status, groups, routes) needs to be a factory function that captures a group-specific context. Getting `local.groups.put` to dynamically create `distribution[gid]` with properly instantiated services required careful wiring between the local groups service and `all/all.js`'s `setup` function.
+1. **Getting group-specific services to work**: Each group needs its own version of comm, status, routes, etc. that knows which group it belongs to. Wiring up `local.groups.put` to dynamically create `distribution[gid]` with the right services took a while to get right, lots of back and forth between the groups service and the setup function in `all/all.js`.
 
-2. **Concurrent fan-out in all.comm.send**: Sending messages to all nodes in a group and collecting responses required careful counting to know when all responses have arrived. Errors and values need to be collected in separate maps keyed by SID, and the callback only fires once all nodes have responded.
+2. **Fan-out and collecting responses**: When sending a message to all nodes in a group, you have to wait for everyone to respond before calling the callback. I kept track of how many responses came back and stored errors/values in maps keyed by node SID. Easy to mess up the counting.
 
-3. **Extending comm/routes/node.js for GID-aware routing**: The path format changed from `/<service>/<method>` to `/<gid>/<service>/<method>`, which required coordinated updates across three files. `routes.get` now accepts both a string and an `{service, gid}` object, and the node server extracts the gid to route to either local or distributed services.
+3. **Adding group IDs to the routing path**: The URL format changed from `/<service>/<method>` to `/<gid>/<service>/<method>`, which meant updating comm, routes, and node.js together (based on EdStem post num 158). So, `routes.get` now handles both the old string format and the new `{service, gid}` object format.
 
 ### Correctness & Performance Characterization
-*Correctness*: 5 student tests covering local.groups CRUD, distributed comm fan-out, routes config formats, and distributed status aggregation. The provided test suite covers all.comm, all.status, all.groups, and all.routes with multi-node setups.
+*Correctness*: Wrote 5 student tests for local.groups CRUD, distributed comm fan-out, routes config formats, and distributed status aggregation. The provided tests cover multi-node setups for all.comm, all.status, all.groups, and all.routes.
 
-*Performance*: Spawn times depend on the reference library implementation (used via skip.sh for E1).
+*Performance*: Measured `status.spawn` latency over 5 sequential spawns (Docker container, Node v20). Average spawn latency: 97.99 ms (min 88.43 ms, max 107.35 ms), throughput: 10.21 spawns/s.
 
 ### Key Feature
-The point of a gossip protocol is scalability. If a node sends a message to all other nodes in its group, the communication cost is O(n) per message, which becomes a bottleneck at scale. With gossip, each node only contacts a random subset (e.g., log(n) nodes), and those nodes forward the message to their own random subsets. This achieves eventual dissemination with O(log(n)) communication per node per round. The trade-off is that delivery is probabilistic and not immediate, but for non-critical information like health checks or membership updates, this is an excellent trade-off that allows the system to scale to thousands of nodes.
+Gossip protocols are about scaling. If every node sends messages to every other node, that's O(n) messages per update, i.e., doesn't scale. With gossip, each node picks a random handful of neighbors (e.g., log(n) of them) and shares the update. Those neighbors do the same, and eventually everyone gets the message. It's not instant and not guaranteed, but for things like health checks or membership changes, that's fine. The payoff is that you can scale to thousands of nodes without drowning in network traffic.
