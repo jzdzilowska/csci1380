@@ -210,7 +210,7 @@ My implementation has 6 new software components, appx 250 added lines of code ad
 ### Correctness & Performance Characterization
 *Correctness*: Wrote 5 student tests for local.groups CRUD, distributed comm fan-out, routes config formats, and distributed status aggregation. The provided tests cover multi-node setups for all.comm, all.status, all.groups, and all.routes.
 
-*Performance*: Measured `status.spawn` latency over 5 sequential spawns (Docker container, Node v20). Average spawn latency: 97.99 ms (min 88.43 ms, max 107.35 ms), throughput: 10.21 spawns/s.
+*Performance*: Measured `status.spawn` latency over 5 sequential spawns. Local (Docker, Node v20): avg 97.99 ms, 10.21 spawns/s. AWS EC2 (Ubuntu, Node v20): avg 146.49 ms, 6.83 spawns/s.
 
 ### Key Feature
 Gossip protocols are about scaling. If every node sends messages to every other node, that's O(n) messages per update, i.e., doesn't scale. With gossip, each node picks a random handful of neighbors (e.g., log(n) of them) and shares the update. Those neighbors do the same, and eventually everyone gets the message. It's not instant and not guaranteed, but for things like health checks or membership changes, that's fine. The payoff is that you can scale to thousands of nodes without drowning in network traffic.
