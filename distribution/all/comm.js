@@ -56,7 +56,6 @@ function comm(config) {
           node: node,
           service: configuration.service,
           method: configuration.method,
-          gid: configuration.gid || context.gid,
         };
 
         localComm.send(message, remote, (e, v) => {

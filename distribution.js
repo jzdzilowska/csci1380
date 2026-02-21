@@ -14,6 +14,11 @@ function bootstrap(config) {
     // @ts-ignore Optional dependency for reference implementation.
     const distributionLib = require('@brown-ds/distribution')(config);
     distributionLib; // To avoid unused variable warning
+
+  // Save lib's deserialize BEFORE loading node.js, so setNodeConfig can use it
+  // (setNodeConfig runs at require-time, before overrides take effect)
+  globalThis.__libDeserialize = distributionLib.util.deserialize;
+
   const distribution = {};
 
   // @ts-ignore This is the first time globalThis.distribution is being initialized, so the object does not have all the necessary properties.

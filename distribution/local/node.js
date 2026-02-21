@@ -37,7 +37,7 @@ function setNodeConfig() {
   if (typeof args.config === 'string') {
     let config = undefined;
     try {
-      config = globalThis.distribution.util.deserialize(args.config);
+      config = (globalThis.__libDeserialize || globalThis.distribution.util.deserialize)(args.config);
     } catch (error) {
       try {
         config = JSON.parse(args.config);
