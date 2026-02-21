@@ -30,29 +30,21 @@ function bootstrap(config) {
   const {setup} = require('./distribution/all/all.js');
   distribution.all = setup({gid: 'all'});
 
-  // override spawn, stop, and createRPC with library implementations for M2 scenario
+  // __start_M3_solution__
+  // Official overrides per Ed post (not doing extra credit)
   distribution.util.wire.createRPC = distributionLib.util.wire.createRPC;
+  distribution.local.routes = distributionLib.local.routes;
   distribution.local.status.spawn = distributionLib.local.status.spawn;
   distribution.local.status.stop = distributionLib.local.status.stop;
+  distribution.local.comm = distributionLib.local.comm;
+  distribution.node.start = distributionLib.node.start;
+  distribution.util.serialize = distributionLib.util.serialize;
+  distribution.util.deserialize = distributionLib.util.deserialize;
+  // __end_M3_solution__
 
   for (const [key, service] of Object.entries(distribution.local)) {
     distribution.local.routes.put(service, key, () => {});
   }
-
-  // createRPC registers its callback services in the reference library's
-  // internal routes, not ours. Patch routes.get to fall back to the
-  // reference library's routes when our table doesn't have a match.
-  const userRoutesGet = distribution.local.routes.get;
-  const libRoutesGet = distributionLib.local.routes.get;
-  distribution.local.routes.get = function(config, callback) {
-    userRoutesGet(config, (e, v) => {
-      if (e) {
-        libRoutesGet(config, callback);
-      } else {
-        callback(null, v);
-      }
-    });
-  };
 
   return distribution;
 }
@@ -72,17 +64,7 @@ const distribution = useLibrary ? require('@brown-ds/distribution') : bootstrap;
 /* The following code is run when distribution.js is invoked directly */
 if (require.main === module) {
   globalThis.distribution = distribution();
-  globalThis.distribution.node.start(globalThis.distribution.node.config.onStart || (() => {
-    // Start REPL for interactive use
-    const repl = require('node:repl');
-    repl.start({
-      prompt: `${globalThis.distribution.util.id.getSID(globalThis.distribution.node.config)}> `,
-      input: process.stdin,
-      output: process.stdout,
-      terminal: true,
-      useGlobal: true,
-    });
-  }));
+  globalThis.distribution.node.start(globalThis.distribution.node.config.onStart || (() => {}));
 }
 
 module.exports = distribution;
