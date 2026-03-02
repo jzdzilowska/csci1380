@@ -11,6 +11,10 @@ test('(5 pts) (scenario) use the local store', (done) => {
   const user = {first: 'Josiah', last: 'Carberry'};
   const key = 'jcarbspsg';
 
+  distribution.local.store.put(user, key, (e, v) => {
+    if (e) return done(e);
+    check();
+  });
 
   function check() {
     distribution.local.store.get(key, (e, v) => {
@@ -40,9 +44,8 @@ test('(5 pts) (scenario) two keys map to the same node', () => {
     util.id.getNID({ip: '192.168.0.4', port: 8000}),
     util.id.getNID({ip: '192.168.0.5', port: 8000}),
   ];
-  let key1 = '?';
-  let key2 = '?';
-
+  let key1 = 'key0';
+  let key2 = 'key26';
 
   const kid1 = util.id.getID(key1);
   const kid2 = util.id.getID(key2);
@@ -69,14 +72,16 @@ test('(5 pts) (scenario) hash functions return the same node', () => {
     util.id.getNID({ip: '192.168.0.4', port: 8000}),
   ];
 
-  let key = '?';
+  let key = 'key7';
 
   const kid = util.id.getID(key);
 
-  let a = util.id.consistentHash(kid, nodeIds); // You can also experiment with other hash functions
-  let b = '?'; // Pick one of the other hash functions
+  let a = util.id.consistentHash(kid, nodeIds);
+  let b = util.id.naiveHash(kid, nodeIds);
+  let c = util.id.rendezvousHash(kid, nodeIds);
 
   expect(a).toEqual(b);
+  expect(b).toEqual(c);
 });
 
 const n1 = {ip: '127.0.0.1', port: 9001};
@@ -96,59 +101,68 @@ test('(5 pts) (scenario) use mem.reconf', (done) => {
 
   // Create a group with any number of nodes
   const mygroupGroup = {};
-  // Add more nodes to the group...
+  mygroupGroup[id.getSID(n1)] = n1;
+  mygroupGroup[id.getSID(n2)] = n2;
+  mygroupGroup[id.getSID(n3)] = n3;
 
-  // Create a set of items and corresponding keys...
+    // Create a set of items and corresponding keys...
   const keysAndItems = [
     {key: 'a', item: {first: 'Josiah', last: 'Carberry'}},
+    {key: 'b', item: {first: 'Gus', last: 'Fring'}},
   ];
 
-  // Experiment with different hash functions...
-  const config = {gid: 'mygroup', hash: '?'};
+  const config = {gid: 'mygroup', hash: id.naiveHash};
 
   distribution.local.groups.put(config, mygroupGroup, (e, v) => {
     // Now, place each one of the items you made inside the group...
     distribution.mygroup.mem.put(keysAndItems[0].item, keysAndItems[0].key, (e, v) => {
-        // We need to pass a copy of the group's
-        // nodes before the changes to reconf()
-        const groupCopy = {...mygroupGroup};
-
-        // Remove a node from the group...
-        let toRemove = '?';
-        distribution.local.groups.rem(
-            'mygroup',
-            id.getSID(toRemove),
-            (e, v) => {
-            // We call `reconf()` on the distributed mem service. This will place the items in the remaining group nodes...
-              distribution.mygroup.mem.reconf(groupCopy, (e, v) => {
-              // Fill out the `checkPlacement` function (defined below) based on how you think the items will have been placed after the reconfiguration...
-                checkPlacement();
-              });
-            });
+      if (e) return done(e);
+      distribution.mygroup.mem.put(keysAndItems[1].item, keysAndItems[1].key, (e, v) => {
+        if (e) return done(e);
+        checkPlacement();
+      });
     });
   });
 
-  // This function will be called after we put items in nodes
-  // Send the right messages to the right nodes to check if the items are in the right place...
-  const checkPlacement = (e, v) => {
-    const messages = [
-      [{key: keysAndItems[0].key, gid: 'mygroup'}],
-    ];
+  const checkPlacement = () => {
+    const nodes = [n1, n2, n3];
+    const nids = nodes.map((n) => id.getNID(n));
 
-    // Based on where you think the items should be, send the messages to the right nodes...
-    const remote = {node: '?', service: 'mem', method: 'get'};
-    distribution.local.comm.send(messages[0], remote, (e, v) => {
-      try {
-        expect(e).toBeFalsy();
-        expect(v).toEqual(keysAndItems[0].item);
-      } catch (error) {
-        done(error);
-        return;
-      }
+    const nodeForKey = (key) => {
+      const kid = id.getID(key);
+      const nid = id.naiveHash(kid, nids);
+      return nodes.find((n) => id.getNID(n) === nid);
+    };
 
-      // Write checks for the rest of the items...
-      done(); // Only call `done()` once all checks are written
-    });
+    const remote0 = {
+      node: nodeForKey(keysAndItems[0].key),
+      service: 'mem', method: 'get',
+    };
+    distribution.local.comm.send(
+        [{key: keysAndItems[0].key, gid: 'mygroup'}], remote0, (e, v) => {
+          try {
+            expect(e).toBeFalsy();
+            expect(v).toEqual(keysAndItems[0].item);
+          } catch (error) {
+            done(error);
+            return;
+          }
+
+          const remote1 = {
+            node: nodeForKey(keysAndItems[1].key),
+            service: 'mem', method: 'get',
+          };
+          distribution.local.comm.send(
+              [{key: keysAndItems[1].key, gid: 'mygroup'}], remote1, (e, v) => {
+                try {
+                  expect(e).toBeFalsy();
+                  expect(v).toEqual(keysAndItems[1].item);
+                  done();
+                } catch (error) {
+                  done(error);
+                }
+              });
+        });
   };
 });
 
@@ -212,6 +226,14 @@ test('(5 pts) (scenario) redistribute keys and values among nodes', (done) => {
     // Helper to process a single node's data
     const processNode = (node, dataToProcess, callback) => {
       const entries = Object.entries(dataToProcess);
+      let pending = entries.length;
+      if (pending === 0) return callback();
+
+      entries.forEach(([k, v]) => {
+        distribution.shuffleGroup.store.append(v, k, (e, v) => {
+          if (--pending === 0) callback();
+        });
+      });
     };
 
     // Process n1's data, then n2's data, and finlly check the results
@@ -227,12 +249,13 @@ test('(5 pts) (scenario) redistribute keys and values among nodes', (done) => {
     distribution.shuffleGroup.store.get('jcarb', (e, v) => {
       try {
         expect(e).toBeFalsy();
-        // What do you expect the value to be?
+        expect(v).toEqual(expect.arrayContaining(['one', 'two']));
+        expect(v.length).toBe(2);
 
-        // Check 'lc' aggregation
         distribution.shuffleGroup.store.get('lc', (e, v) => {
           expect(e).toBeFalsy();
-          // What do you expect the value to be?
+          expect(v).toEqual(expect.arrayContaining(['three']));
+          expect(v.length).toBe(1);
           done();
         });
       } catch (error) {
@@ -243,7 +266,11 @@ test('(5 pts) (scenario) redistribute keys and values among nodes', (done) => {
 });
 
 beforeAll((done) => {
-  // First, stop the nodes if they are running
+  const fs = require('fs');
+  const path = require('path');
+  fs.rmSync(path.join(__dirname, '../../store'), {recursive: true, force: true});
+  fs.mkdirSync(path.join(__dirname, '../../store'));
+
   const remote = {service: 'status', method: 'stop'};
 
   remote.node = n1;

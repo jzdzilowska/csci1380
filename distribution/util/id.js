@@ -72,10 +72,32 @@ const naiveHash = (kid, nids) => {
 
 /** @type { Hasher } */
 const consistentHash = (kid, nids) => {
+  const allIds = [...nids, kid];
+  const sorted = [...allIds].sort((a, b) => {
+    const numA = idToNum(a);
+    const numB = idToNum(b);
+    if (numA < numB) return -1;
+    if (numA > numB) return 1;
+    return 0;
+  });
+  const kidIndex = sorted.indexOf(kid);
+  const nextIndex = (kidIndex + 1) % sorted.length;
+  return sorted[nextIndex];
 };
 
 /** @type { Hasher } */
 const rendezvousHash = (kid, nids) => {
+  let maxHash = BigInt(-1);
+  let maxNid = null;
+  for (const nid of nids) {
+    const combined = kid + nid;
+    const hash = idToNum(getID(combined));
+    if (hash > maxHash) {
+      maxHash = hash;
+      maxNid = nid;
+    }
+  }
+  return maxNid;
 };
 
 module.exports = {
@@ -83,6 +105,7 @@ module.exports = {
   getNID,
   getSID,
   getMID,
+  idToNum,
   naiveHash,
   consistentHash,
   rendezvousHash,
