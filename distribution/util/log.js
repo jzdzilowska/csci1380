@@ -10,6 +10,8 @@ const logFile = process.env.DISTRIBUTION_LOG_FILE || path.join('/tmp', 'log.txt'
  * @param {string} [severity]
  */
 function log(message, severity) {
+  if (!globalThis.debug) return;
+
   if (!severity) {
     severity = 'info';
   }

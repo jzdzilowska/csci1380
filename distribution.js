@@ -62,9 +62,10 @@ function bootstrap(config) {
   Set "useLibrary" in package.json to true or false accordingly.
 */
 // @ts-ignore JSON import resolved at runtime.
-const {useLibrary} = require('./package.json');
+const {useLibrary, debug} = require('./package.json');
 // @ts-ignore Optional dependency for reference implementation.
 const distribution = useLibrary ? require('@brown-ds/distribution') : bootstrap;
+globalThis.debug = debug ? true : false;
 
 /* The following code is run when distribution.js is invoked directly */
 if (require.main === module) {

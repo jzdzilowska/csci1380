@@ -1,3 +1,14 @@
+// @ts-check
+/**
+ * @typedef {import("../types.js").Callback} Callback
+ *
+ * @typedef {Object} StoreConfig
+ * @property {string | null} key
+ * @property {string | null} gid
+ *
+ * @typedef {StoreConfig | string | null} SimpleConfig
+ */
+
 
 /**
  * @param {any} state

@@ -331,20 +331,20 @@ test('(2 pts) local.groups.put()/add(n2)/get()', (done) => {
   local.groups.put('atlas', g, (e, v) => {
     const n2 = {ip: '127.0.0.1', port: 8084};
 
-    local.groups.add('atlas', n2);
+    local.groups.add('atlas', n2, (e, v) => {
+      const expectedGroup = {
+        ...g, ...{[id.getSID(n2)]: n2},
+      };
 
-    const expectedGroup = {
-      ...g, ...{[id.getSID(n2)]: n2},
-    };
-
-    local.groups.get('atlas', (e, v) => {
-      try {
-        expect(e).toBeFalsy();
-        expect(v).toEqual(expectedGroup);
-        done();
-      } catch (error) {
-        done(error);
-      }
+      local.groups.get('atlas', (e, v) => {
+        try {
+          expect(e).toBeFalsy();
+          expect(v).toEqual(expectedGroup);
+          done();
+        } catch (error) {
+          done(error);
+        }
+      });
     });
   });
 });

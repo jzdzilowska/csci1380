@@ -93,8 +93,8 @@ You can also send messages to other nodes:
 ```
 
 Most methods in the distribution library are asynchronous and take a callback as their last argument.
-This callback is called when the method completes, with the first argument being an error (if any) and the second argument being the result.
-If you wanted to run this same sequence of commands in a script, you could do something like this (note the nested callbacks):
+This callback is invoked when the method completes, with the first argument being an error (if any) and the second argument being the result.
+The following runs the sequence of commands described above inside a script (note the nested callbacks):
 
 ```js
 let distribution = require("@brown-ds/distribution")();

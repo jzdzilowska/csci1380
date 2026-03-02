@@ -312,6 +312,38 @@ test('(1 pts) all.store.put(no key)', (done) => {
 });
 
 
+test('(0 pts) putting to all.store does not affect different groups', (done) => {
+  const key = 'key';
+  const userA = {first: 'Alice', group: 'A'};
+  const userB = {first: 'Bob', group: 'B'};
+
+  distribution.mygroup.store.put(userA, key, (e) => {
+    if (e) return done(e);
+    distribution.mygroupB.store.put(userB, key, (e) => {
+      if (e) return done(e);
+      distribution.mygroup.store.get(key, (eA, vA) => {
+        try {
+          expect(eA).toBeFalsy();
+          expect(vA).toEqual(userA);
+        } catch (err) {
+          return done(err);
+        }
+
+        distribution.mygroupB.store.get(key, (eB, vB) => {
+          try {
+            expect(eB).toBeFalsy();
+            expect(vB).toEqual(userB);
+            done();
+          } catch (err) {
+            done(err);
+          }
+        });
+      });
+    });
+  });
+});
+
+
 /*
     Following is the setup for the tests.
 */

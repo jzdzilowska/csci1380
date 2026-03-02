@@ -1,9 +1,10 @@
 {
   "name": "cs1380-stencil",
-  "version": "0.2.32",
+  "version": "0.2.33",
   "description": "A library for building distributed systems.",
   "main": "distribution.js",
-  "useLibrary": false,
+  "useLibrary": true,
+  "debug": false,
   "directories": {
     "test": "test"
   },
