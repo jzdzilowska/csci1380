@@ -13,16 +13,16 @@
 
 const crypto = require('crypto');
 
-const config = {ip: '127.0.0.1', port: 7200};
+const config = {ip: '3.135.205.34', port: 7200};
 require('../distribution.js')(config);
 const distribution = globalThis.distribution;
 const id = distribution.util.id;
 
 const NUM_OBJECTS = 1000;
 
-const n1 = {ip: '127.0.0.1', port: 7201};
-const n2 = {ip: '127.0.0.1', port: 7202};
-const n3 = {ip: '127.0.0.1', port: 7203};
+const n1 = {ip: '3.135.205.34', port: 7201};
+const n2 = {ip: '18.222.21.211', port: 7201};
+const n3 = {ip: '18.118.149.129', port: 7201};
 
 function randomString(len) {
   return crypto.randomBytes(len).toString('hex');
