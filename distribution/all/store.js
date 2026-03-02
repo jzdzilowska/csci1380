@@ -173,13 +173,15 @@ function store(config) {
    * @param {Callback} callback
    */
   function reconf(configuration, callback) {
-    // same idea as mem.reconf, fan out to old group nodes to find all keys,
-    // then move any keys whose responsible node changed
+    // basically same thing as mem reconf but for persistent store
+    // takes the old group n figures out what needs to move
     const oldGroup = configuration;
     const oldNodes = Object.values(oldGroup);
     const oldNids = oldNodes.map((n) => id.getNID(n));
     const gid = context.gid;
 
+    // gotta ask the OLD nodes for keys, not current group
+    // cuz removed nodes might still have stuff on them
     let pending = oldNodes.length;
     const allKeys = [];
 
@@ -200,11 +202,13 @@ function store(config) {
     function doRelocate(keys) {
       if (keys.length === 0) return callback(null, null);
 
+      // get the new group (already updated by whoever called reconf)
       globalThis.distribution.local.groups.get(gid, (e, newGroup) => {
         if (e) return callback(e);
         const newNodes = Object.values(newGroup);
         const newNids = newNodes.map((n) => id.getNID(n));
 
+        // hash each key w old nids n new nids, see if it changed
         const toRelocate = [];
         for (const key of keys) {
           const kid = id.getID(key);
@@ -223,6 +227,8 @@ function store(config) {
 
         let remaining = toRelocate.length;
 
+        // for every key thats in the wrong place now
+        // grab it from old node, delete it, n put it on the new one
         toRelocate.forEach(({key, oldNode, newNode}) => {
           const getRemote = {node: oldNode, service: 'store', method: 'get'};
           globalThis.distribution.local.comm.send(
