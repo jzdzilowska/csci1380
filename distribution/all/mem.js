@@ -183,23 +183,43 @@ function mem(config) {
    * @param {Object.<string, Node>} configuration - the old group state
    * @param {Callback} callback
    */
-  //   1. get every key currently stored across all nodes fan out
-  //   2. for each k, rehash against the old nids and new nids
-  //   3. if the responsible node changed move the value: get from old, del, put to new
+  //   1 fan out to old group nodes to find all keys (not curr group,
+  //      removed nodes might still hold data)
+  //   2 for each key rehash against old nids n new nids
+  //   3 if the responsible node changed, move the value: get from old, del, put to new
   function reconf(configuration, callback) {
     const oldGroup = configuration;
     const oldNodes = Object.values(oldGroup);
     const oldNids = oldNodes.map((n) => id.getNID(n));
+    const gid = context.gid;
 
-    get(null, (e, keys) => {
-      if (!keys || keys.length === 0) return callback(null, null);
+    // fan out to ALL old nodes to collect every key, cant do get(null)
+    // because the current group might already have nodes removed
+    let pending = oldNodes.length;
+    const allKeys = [];
 
-      globalThis.distribution.local.groups.get(context.gid, (e, newGroup) => {
+    if (pending === 0) return callback(null, null);
+
+    oldNodes.forEach((node) => {
+      const remote = {node, service: 'mem', method: 'get'};
+      globalThis.distribution.local.comm.send([{key: null, gid}], remote, (e, v) => {
+        if (v && Array.isArray(v)) {
+          allKeys.push(...v);
+        }
+        if (--pending === 0) {
+          doRelocate(allKeys);
+        }
+      });
+    });
+
+    function doRelocate(keys) {
+      if (keys.length === 0) return callback(null, null);
+
+      globalThis.distribution.local.groups.get(gid, (e, newGroup) => {
         if (e) return callback(e);
         const newNodes = Object.values(newGroup);
         const newNids = newNodes.map((n) => id.getNID(n));
 
-        // which keys need to move
         const toRelocate = [];
         for (const key of keys) {
           const kid = id.getID(key);
@@ -216,16 +236,15 @@ function mem(config) {
 
         if (toRelocate.length === 0) return callback(null, null);
 
-        let pending = toRelocate.length;
-        const gid = context.gid;
+        let remaining = toRelocate.length;
 
-        // for each key that moved: get value from old node, delete it, put on new node
+        // for each key that moved get from old node to del to put to new node
         toRelocate.forEach(({key, oldNode, newNode}) => {
           const getRemote = {node: oldNode, service: 'mem', method: 'get'};
           globalThis.distribution.local.comm.send(
               [{key, gid}], getRemote, (e, value) => {
                 if (e) {
-                  if (--pending === 0) callback(null, null);
+                  if (--remaining === 0) callback(null, null);
                   return;
                 }
                 const delRemote = {node: oldNode, service: 'mem', method: 'del'};
@@ -236,13 +255,13 @@ function mem(config) {
                       };
                       globalThis.distribution.local.comm.send(
                           [value, {key, gid}], putRemote, (e3, v3) => {
-                            if (--pending === 0) callback(null, null);
+                            if (--remaining === 0) callback(null, null);
                           });
                     });
               });
         });
       });
-    });
+    }
   }
   /* For the distributed mem service, the configuration will
           always be a string */
