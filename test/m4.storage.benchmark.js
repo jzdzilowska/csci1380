@@ -6,20 +6,35 @@
  *   2. Insert all into the distributed store, measuring latency + throughput
  *   3. Retrieve all by key, measuring latency + throughput
  *
- * Usage:
- *   node test/m4.storage.benchmark.js
- *   (Run after deploying 3 nodes on AWS or locally)
+ * AWS usage (3 separate EC2 instances):
+ *   On each instance, start a worker node first:
+ *     node distribution.js --config '{"ip":"0.0.0.0","port":7201}'
+ *   Then on ONE instance, run the benchmark:
+ *     node test/m4.storage.benchmark.js
+ *
+ * Local usage:
+ *   Set REMOTE = false, then just run:
+ *     node test/m4.storage.benchmark.js
  */
 
 const crypto = require('crypto');
 
-const config = {ip: '3.135.205.34', port: 7200};
+// ---- TOGGLE THIS ----
+// true  = nodes already running on separate EC2 instances
+// false = spawn all nodes locally on this machine
+const REMOTE = true;
+
+// coordinator binds to 0.0.0.0 so it works on EC2 (can't bind to public IP)
+const config = {ip: '0.0.0.0', port: 7200};
 require('../distribution.js')(config);
 const distribution = globalThis.distribution;
 const id = distribution.util.id;
 
 const NUM_OBJECTS = 1000;
 
+// worker nodes, one per EC2 instance
+// each instance should already be running:
+//   node distribution.js --config '{"ip":"0.0.0.0","port":7201}'
 const n1 = {ip: '3.135.205.34', port: 7201};
 const n2 = {ip: '18.222.21.211', port: 7201};
 const n3 = {ip: '18.118.149.129', port: 7201};
@@ -60,23 +75,45 @@ function reportStats(label, latencies, totalMs) {
 async function main() {
   console.log('='.repeat(70));
   console.log('T5: DISTRIBUTED STORAGE BENCHMARK');
+  console.log(`Mode: ${REMOTE ? 'REMOTE (3 separate EC2 instances)' : 'LOCAL'}`);
   console.log('='.repeat(70));
 
-  // Start local node
+  // start the coordinator node
   await new Promise((resolve, reject) => {
     distribution.node.start((e) => e ? reject(e) : resolve());
   });
   console.log(`Coordinator started on ${config.ip}:${config.port}`);
 
-  // Spawn worker nodes
-  for (const node of [n1, n2, n3]) {
-    await new Promise((resolve, reject) => {
-      distribution.local.status.spawn(node, (e) => e ? reject(e) : resolve());
-    });
+  if (REMOTE) {
+    // remote mode: nodes are already running on each EC2 instance
+    // just ping each one to make sure we can reach them
+    console.log('Verifying remote nodes are reachable...');
+    for (const node of [n1, n2, n3]) {
+      await new Promise((resolve, reject) => {
+        distribution.local.comm.send(
+            ['sid'], {node, service: 'status', method: 'get'}, (e, v) => {
+              if (e) {
+                console.error(`  FAIL ${node.ip}:${node.port} — ${e.message}`);
+                reject(e);
+              } else {
+                console.log(`  OK   ${node.ip}:${node.port} (sid: ${v})`);
+                resolve(v);
+              }
+            });
+      });
+    }
+    console.log('All 3 remote nodes reachable');
+  } else {
+    // local mode: spawn worker nodes as child processes
+    for (const node of [n1, n2, n3]) {
+      await new Promise((resolve, reject) => {
+        distribution.local.status.spawn(node, (e) => e ? reject(e) : resolve());
+      });
+    }
+    console.log('Spawned 3 local worker nodes');
   }
-  console.log(`Spawned 3 worker nodes`);
 
-  // Create a group
+  // create the group
   const groupNodes = {};
   [n1, n2, n3].forEach((n) => {
     groupNodes[id.getSID(n)] = n;
@@ -131,7 +168,7 @@ async function main() {
   const getStart = Date.now();
   let getErrors = 0;
 
-  for (const {key, value} of pairs) {
+  for (const {key} of pairs) {
     const opStart = Date.now();
     await new Promise((resolve) => {
       distribution.benchGroup.store.get(key, (e, v) => {
@@ -161,16 +198,18 @@ async function main() {
   console.log(`  Retrieve avg latency: ${formatMs(getStats.avg)}`);
   console.log('='.repeat(70));
   console.log('\nPaste these into package.json report.M4:');
-  console.log(`  "throughput": { "dev": [${insertStats.throughput.toFixed(2)}, ${getStats.throughput.toFixed(2)}] }`);
-  console.log(`  "latency":    { "dev": [${insertStats.avg.toFixed(2)}, ${getStats.avg.toFixed(2)}] }`);
+  console.log(`  "throughput": { "aws": [${insertStats.throughput.toFixed(2)}, ${getStats.throughput.toFixed(2)}] }`);
+  console.log(`  "latency":    { "aws": [${insertStats.avg.toFixed(2)}, ${getStats.avg.toFixed(2)}] }`);
 
-  // Cleanup
-  for (const node of [n1, n2, n3]) {
-    await new Promise((resolve) => {
-      distribution.local.comm.send(
-          [], {node, service: 'status', method: 'stop'}, () => resolve(),
-      );
-    });
+  // cleanup — only stop nodes if we spawned them locally
+  if (!REMOTE) {
+    for (const node of [n1, n2, n3]) {
+      await new Promise((resolve) => {
+        distribution.local.comm.send(
+            [], {node, service: 'status', method: 'stop'}, () => resolve(),
+        );
+      });
+    }
   }
   if (globalThis.distribution.node.server) {
     globalThis.distribution.node.server.close();
