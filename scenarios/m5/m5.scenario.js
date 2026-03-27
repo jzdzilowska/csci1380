@@ -94,9 +94,20 @@ test('(10 pts) (scenario) all.mr:dlib', (done) => {
 */
 
   const mapper = (key, value) => {
+    const words = value.split(/\s+/).filter((e) => e !== '');
+    const out = [];
+    words.forEach((w) => {
+      const o = {};
+      o[w] = 1;
+      out.push(o);
+    });
+    return out;
   };
 
   const reducer = (key, values) => {
+    const out = {};
+    out[key] = values.reduce((sum, v) => sum + v, 0);
+    return out;
   };
 
   const dataset = [
@@ -169,11 +180,30 @@ test('(10 pts) (scenario) all.mr:tfidf', (done) => {
 */
 
   const mapper = (key, value) => {
+    const words = value.split(/\s+/).filter((e) => e !== '');
+    const total = words.length;
+    const counts = {};
+    words.forEach((w) => {
+      counts[w] = (counts[w] || 0) + 1;
+    });
+    const out = [];
+    Object.entries(counts).forEach(([word, count]) => {
+      out.push({[word]: {docId: key, count: count, total: total}});
+    });
+    return out;
   };
 
   // Reduce function: calculate TF-IDF for each word
   const reducer = (key, values) => {
     const totalDocs = 3;
+    const numDocsWithTerm = values.length;
+    const idf = Math.log10(totalDocs / numDocsWithTerm);
+    const docScores = {};
+    values.forEach((v) => {
+      const tf = v.count / v.total;
+      docScores[v.docId] = parseFloat((tf * idf).toFixed(2));
+    });
+    return {[key]: docScores};
   };
 
   const dataset = [
@@ -235,23 +265,86 @@ test('(10 pts) (scenario) all.mr:tfidf', (done) => {
 */
 
 test('(10 pts) (scenario) all.mr:crawl', (done) => {
-    done(new Error('Implement this test.'));
+  done(new Error('Implement this test.'));
 });
 
 test('(10 pts) (scenario) all.mr:urlxtr', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  done(new Error('Implement the map and reduce functions'));
 });
 
 test('(10 pts) (scenario) all.mr:strmatch', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  const strmatchConfig = {gid: 'strmatch'};
+  distribution.local.groups.put(strmatchConfig, strmatchGroup, (e, v) => {
+    distribution.strmatch.groups.put(strmatchConfig, strmatchGroup, (e, v) => {
+      const pattern = /epoch/;
+
+      const mapper = (key, value) => {
+        if (/epoch/.test(value)) {
+          return [{[key]: true}];
+        }
+        return [];
+      };
+
+      const reducer = (key, values) => {
+        const out = {};
+        out[key] = true;
+        return out;
+      };
+
+      const dataset = [
+        {'d1': 'It was the best of times, it was the worst of times,'},
+        {'d2': 'it was the age of wisdom, it was the age of foolishness,'},
+        {'d3': 'it was the epoch of belief, it was the epoch of incredulity,'},
+        {'d4': 'it was the season of Light, it was the season of Darkness,'},
+        {'d5': 'it was the spring of hope, it was the winter of despair,'},
+      ];
+
+      const expected = [
+        {'d3': true},
+      ];
+
+      const doMapReduce = () => {
+        distribution.strmatch.store.get(null, (e, v) => {
+          try {
+            expect(v.length).toEqual(dataset.length);
+          } catch (e) {
+            done(e);
+          }
+
+          distribution.strmatch.mr.exec(
+              {keys: v, map: mapper, reduce: reducer}, (e, v) => {
+                try {
+                  expect(v).toEqual(expect.arrayContaining(expected));
+                  expect(v).toHaveLength(expected.length);
+                  done();
+                } catch (e) {
+                  done(e);
+                }
+              });
+        });
+      };
+
+      let cntr = 0;
+      dataset.forEach((o) => {
+        const key = Object.keys(o)[0];
+        const value = o[key];
+        distribution.strmatch.store.put(value, key, (e, v) => {
+          cntr++;
+          if (cntr === dataset.length) {
+            doMapReduce();
+          }
+        });
+      });
+    });
+  });
 });
 
 test('(10 pts) (scenario) all.mr:ridx', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  done(new Error('Implement the map and reduce functions'));
 });
 
 test('(10 pts) (scenario) all.mr:rlg', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  done(new Error('Implement the map and reduce functions'));
 });
 
 /*

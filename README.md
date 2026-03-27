@@ -198,6 +198,7 @@ This is useful since it lets you distribute work across multiple machines while 
 
 ## M3: Node Groups & Gossip Protocols
 
+
 ### Summary
 My implementation has 6 new software components, appx 250 added lines of code added since previous implementation. Key challenges included:
 
@@ -214,3 +215,23 @@ My implementation has 6 new software components, appx 250 added lines of code ad
 
 ### Key Feature
 Gossip protocols are about scaling. If every node sends messages to every other node, that's O(n) messages per update, i.e., doesn't scale. With gossip, each node picks a random handful of neighbors (e.g., log(n) of them) and shares the update. Those neighbors do the same, and eventually everyone gets the message. It's not instant and not guaranteed, but for things like health checks or membership changes, that's fine. The payoff is that you can scale to thousands of nodes without drowning in network traffic.
+
+## M5: Distributed Execution Engine
+
+### Summary
+My implementation comprises 1 new software component (`distribution/all/mr.js`), totaling ~250 added lines of code over the previous implementation. Key challenges included:
+
+1. **Coordinating async phases across nodes**: The orchestrator must wait for all nodes to finish each phase (map, shuffle, reduce) before moving on. Solved by registering a coordinator notification service locally and tracking per-phase completion counts—each node calls `notify` on the coordinator after finishing, and the coordinator triggers the next phase when all nodes report in.
+
+2. **Serializing functions across nodes**: The mapper and reducer functions need to run on remote worker nodes. Rather than relying on `this` binding (which may not survive serialization), the coordinator passes the mapper/reducer as arguments when triggering each phase via `comm.send`, letting the framework's serializer handle function transfer.
+
+3. **Shuffle correctness—grouping values by key on the right node**: During shuffle, each node hashes its map output keys via `naiveHash` to determine which node is responsible for reducing that key, then sends the value there via `mem.append`. Getting the hash targets to agree across all nodes required using the same group lookup and hash function consistently.
+
+### Correctness & Performance Characterization
+
+*Correctness*: I wrote 5 student tests (min temperature, word frequency, string matching, inverted index, character frequency) and 4 scenario workflows (ncdc max temp, dlib word frequency, TF-IDF, string matching). Together with 3 graded tests (ncdc, avgwrdl, cfreq), all 12 tests pass.
+
+*Performance*: My word-frequency workflow (5 documents, 3 nodes, 10 iterations) can sustain ~111.56 docs/second, with an average latency of 44.82 ms per MapReduce run (min 37.35 ms, max 64.74 ms). Measured on local macOS, Apple M2, 16 GB RAM.
+
+### Key Feature
+The scatter-gather orchestrator dynamically registers ephemeral services (`mr-<id>`) on all group nodes and sequences the map → shuffle → reduce pipeline via a coordinator notification protocol. Each phase runs in parallel across all nodes; the coordinator only advances to the next phase after all nodes have confirmed completion. Cleanup deregisters all ephemeral services at the end.
