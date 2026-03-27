@@ -219,17 +219,17 @@ Gossip protocols are about scaling. If every node sends messages to every other 
 ## M5: Distributed Execution Engine
 
 ### Summary
-My implementation comprises 1 new software component (`distribution/all/mr.js`), totaling ~250 added lines of code over the previous implementation. Key challenges included:
+My implementation comprises 1 new software component (`distribution/all/mr.js`); ~250 added lines of code over prev implementation. Key challenges:
 
 1. **Coordinating async phases across nodes**: The orchestrator must wait for all nodes to finish each phase (map, shuffle, reduce) before moving on. Solved by registering a coordinator notification service locally and tracking per-phase completion counts—each node calls `notify` on the coordinator after finishing, and the coordinator triggers the next phase when all nodes report in.
 
-2. **Serializing functions across nodes**: The mapper and reducer functions need to run on remote worker nodes. Rather than relying on `this` binding (which may not survive serialization), the coordinator passes the mapper/reducer as arguments when triggering each phase via `comm.send`, letting the framework's serializer handle function transfer.
+2. **Serializing functions across nodes**: The mapper and reducer functions need to run on remote worker nodes. Rather than relying on `this` binding (may not survive serialization), the coordinator passes the mapper/reducer as arguments when triggering each phase via `comm.send`, letting the framework's serializer handle function transfer.
 
 3. **Shuffle correctness—grouping values by key on the right node**: During shuffle, each node hashes its map output keys via `naiveHash` to determine which node is responsible for reducing that key, then sends the value there via `mem.append`. Getting the hash targets to agree across all nodes required using the same group lookup and hash function consistently.
 
 ### Correctness & Performance Characterization
 
-*Correctness*: I wrote 5 student tests (min temperature, word frequency, string matching, inverted index, character frequency) and 4 scenario workflows (ncdc max temp, dlib word frequency, TF-IDF, string matching). Together with 3 graded tests (ncdc, avgwrdl, cfreq), all 12 tests pass.
+*Correctness*: I wrote 5 student tests (min temperature, word frequency, string matching, inverted index, character frequency) and 4 scenario workflows (ncdc max temp, dlib word frequency, TF-IDF, string matching). Together with 3 graded tests (ncdc, avgwrdl, cfreq), all 12 pass.
 
 *Performance*: My word-frequency workflow (5 documents, 3 nodes, 10 iterations) can sustain ~111.56 docs/second, with an average latency of 44.82 ms per MapReduce run (min 37.35 ms, max 64.74 ms). Measured on local macOS, Apple M2, 16 GB RAM.
 
